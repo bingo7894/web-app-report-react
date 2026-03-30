@@ -44,6 +44,12 @@ function Field({ label, englishLabel, required = false, children }) {
 const inputClassName =
   "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[15px] text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100";
 
+const openNativePicker = (event) => {
+  if (typeof event.currentTarget.showPicker === "function") {
+    event.currentTarget.showPicker();
+  }
+};
+
 function DrawingPad({ value, onChange }) {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -205,7 +211,9 @@ export default function FormGeneralService({ formData, handleChange }) {
               name="reportDate"
               value={formData.reportDate}
               onChange={handleChange}
-              className={inputClassName}
+              onClick={openNativePicker}
+              onFocus={openNativePicker}
+              className={`${inputClassName} cursor-pointer`}
             />
           </Field>
 

@@ -14,6 +14,12 @@ const signatureActionButtonClass =
 const inputClassName =
   "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[15px] text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100";
 
+const openNativePicker = (event) => {
+  if (typeof event.currentTarget.showPicker === "function") {
+    event.currentTarget.showPicker();
+  }
+};
+
 const SignaturePad = forwardRef(
   ({ label, date, onDateChange, variant = "form1", scrollId }, ref) => {
     const canvasRef = useRef(null);
@@ -136,6 +142,8 @@ const SignaturePad = forwardRef(
             name={scrollId === "signature-inspector" ? "signature-date-inspector" : "signature-date-owner"}
             value={date}
             onChange={(e) => onDateChange(e.target.value)}
+            onClick={openNativePicker}
+            onFocus={openNativePicker}
             style={styles.dateInput}
           />
           <button
@@ -180,6 +188,8 @@ export default function ReportFooter({
   formData = {},
   handleChange,
   variant = "form1",
+  authToken = "",
+  onUnauthorized,
 }) {
   const [remark, setRemark] = useState("");
   const [inspectorDate, setInspectorDate] = useState("");
@@ -433,7 +443,9 @@ export default function ReportFooter({
               name="endTime"
               value={formData.endTime || ""}
               onChange={handleChange}
-              className={inputClassName}
+              onClick={openNativePicker}
+              onFocus={openNativePicker}
+              className={`${inputClassName} cursor-pointer`}
             />
           </div>
 
@@ -482,6 +494,8 @@ export default function ReportFooter({
             generalRemark: remark,
           }}
           signatures={signatures}
+          authToken={authToken}
+          onUnauthorized={onUnauthorized}
         />
       </div>
     );
@@ -567,6 +581,8 @@ export default function ReportFooter({
           generalRemark: remark,
         }}
         signatures={signatures}
+        authToken={authToken}
+        onUnauthorized={onUnauthorized}
       />
     </div>
   );
@@ -608,6 +624,7 @@ const styles = {
     borderRadius: "6px",
     border: "1px solid #cbd5e1",
     textAlign: "center",
+    cursor: "pointer",
   },
   btnClear: {
     background: "#64748b",

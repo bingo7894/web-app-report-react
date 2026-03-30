@@ -1,7 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import FormChecklist from "./components/FormChecklist";
 import FormGeneralService from "./components/FormGeneralService";
 import ReportFooter from "./components/ReportFooter";
+import LoginPage from "./components/LoginPage";
+import { BACKEND_URL } from "./utils/config";
+
+const AUTH_STORAGE_KEY = "service-report-auth";
+
+const openNativePicker = (event) => {
+  if (typeof event.currentTarget.showPicker === "function") {
+    event.currentTarget.showPicker();
+  }
+};
+
 function App() {
   const inspectionTypes = [
     "ตรวจสอบอาคาร",
@@ -11,7 +22,6 @@ function App() {
     "ติดตามปัญหา",
   ];
 
-  // 1. สร้าง State สำหรับเก็บข้อมูลฟอร์มทั้งหมด (แทนการไปดึงค่าจาก document.getElementById)
   const [formData, setFormData] = useState({
     formType: "form1",
     reportDate: "",
@@ -37,14 +47,18 @@ function App() {
     overallStatusOther: "",
     endTime: "",
   });
+  const [authState, setAuthState] = useState({
+    token: "",
+    user: null,
+  });
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
 
-  // 2. ฟังก์ชันสำหรับอัปเดตข้อมูลเวลาผู้ใช้พิมพ์กรอกฟอร์ม
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 3. ตั้งค่าวันที่และเวลาปัจจุบันให้เป็นค่าเริ่มต้น
   useEffect(() => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -54,11 +68,131 @@ function App() {
     }));
   }, []);
 
+  useEffect(() => {
+    const savedAuth = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!savedAuth) {
+      setIsAuthLoading(false);
+      return;
+    }
+
+    const restoreSession = async () => {
+      try {
+        const parsedAuth = JSON.parse(savedAuth);
+        if (!parsedAuth?.token) {
+          throw new Error("Missing token");
+        }
+
+        const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${parsedAuth.token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Session expired");
+        }
+
+        const result = await response.json();
+        setAuthState({
+          token: parsedAuth.token,
+          user: result.user || parsedAuth.user || null,
+        });
+      } catch {
+        window.localStorage.removeItem(AUTH_STORAGE_KEY);
+        setAuthState({ token: "", user: null });
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+
+    restoreSession();
+  }, []);
+
+  const handleLogin = async ({ email, password }) => {
+    setIsLoginSubmitting(true);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || result.status !== "success" || !result.access_token) {
+        return {
+          ok: false,
+          message: result.detail || result.message || "เข้าสู่ระบบไม่สำเร็จ",
+        };
+      }
+
+      const nextAuthState = {
+        token: result.access_token,
+        user: result.user || { email },
+      };
+
+      window.localStorage.setItem(
+        AUTH_STORAGE_KEY,
+        JSON.stringify(nextAuthState),
+      );
+      setAuthState(nextAuthState);
+
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        message:
+          error.message || "ไม่สามารถเชื่อมต่อ backend เพื่อเข้าสู่ระบบได้",
+      };
+    } finally {
+      setIsLoginSubmitting(false);
+    }
+  };
+
+  const handleLogout = () => {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    setAuthState({ token: "", user: null });
+  };
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+        <div className="rounded-3xl border border-slate-200 bg-white px-8 py-6 text-center shadow-sm">
+          <p className="text-lg font-semibold text-slate-800">
+            กำลังตรวจสอบ session...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authState.token) {
+    return <LoginPage onLogin={handleLogin} isLoading={isLoginSubmitting} />;
+  }
+
   return (
-    // คลาสพวกนี้คือ Tailwind CSS ที่มาแทน style.css เดิมครับ
-    <div className="max-w-[860px] mx-auto p-4 font-sarabun bg-slate-50 text-slate-900 min-h-screen">
-      {/* ── ส่วนหัว (Header) ── */}
+    <div className="mx-auto min-h-screen max-w-[860px] bg-slate-50 p-4 font-sarabun text-slate-900">
       <header className="mb-7 flex flex-col gap-4 print:hidden">
+        <div className="flex items-center justify-between rounded-2xl border border-slate-300 bg-white px-5 py-4 shadow-sm">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              Signed in
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-800">
+              {authState.user?.email || "Unknown user"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+          >
+            ออกจากระบบ
+          </button>
+        </div>
+
         <div className="flex items-center gap-6 rounded-2xl border border-slate-300 bg-white px-6 py-7 shadow-sm md:gap-8 md:px-7">
           <img
             src="/img/Logo.jpg"
@@ -75,7 +209,6 @@ function App() {
           </div>
         </div>
 
-        {/* ปุ่มเลือกแบบฟอร์ม */}
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold text-primary md:flex-row md:justify-center">
           <label className="text-[16px]">
             <i className="fas fa-layer-group"></i> เลือกแบบฟอร์ม:
@@ -95,7 +228,6 @@ function App() {
       <main className="print:hidden">
         {formData.formType === "form1" ? (
           <>
-            {/* ── ส่วนข้อมูลทั่วไป (General Info) ── */}
             <div className="mb-6 rounded-2xl border border-slate-300 bg-white px-5 py-6 shadow-sm md:px-6">
               <div className="mb-5 flex items-center gap-2 border-b border-slate-200 pb-4 text-primary">
                 <i className="fas fa-info-circle"></i>
@@ -114,7 +246,9 @@ function App() {
                     name="reportDate"
                     value={formData.reportDate}
                     onChange={handleChange}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-[15px] text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100"
+                    onClick={openNativePicker}
+                    onFocus={openNativePicker}
+                    className="w-full cursor-pointer rounded-xl border border-slate-300 bg-white px-4 py-3 text-[15px] text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
 
@@ -226,7 +360,12 @@ function App() {
             <FormChecklist formData={formData} handleChange={handleChange} />
 
             <div className="mt-6">
-              <ReportFooter formData={formData} handleChange={handleChange} />
+              <ReportFooter
+                formData={formData}
+                handleChange={handleChange}
+                authToken={authState.token}
+                onUnauthorized={handleLogout}
+              />
             </div>
           </>
         ) : (
@@ -239,6 +378,8 @@ function App() {
               formData={formData}
               handleChange={handleChange}
               variant="form2"
+              authToken={authState.token}
+              onUnauthorized={handleLogout}
             />
           </div>
         )}

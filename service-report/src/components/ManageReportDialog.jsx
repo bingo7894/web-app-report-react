@@ -33,6 +33,9 @@ export default function ManageReportDialog({
   onClose,
   formData = {},
   signatures = {},
+  authToken = "",
+  authUser = null,
+  onUnauthorized,
 }) {
   const [emailList, setEmailList] = useState([]);
   const [emailInput, setEmailInput] = useState("");
@@ -206,6 +209,14 @@ export default function ManageReportDialog({
   };
 
   const handleSend = async () => {
+    if (!authToken) {
+      setSendResult({
+        type: "error",
+        message: "ยังไม่พบ session สำหรับส่งรายงาน กรุณาเข้าสู่ระบบใหม่",
+      });
+      return;
+    }
+
     if (emailList.length === 0) {
       setSendResult({
         type: "error",
@@ -231,14 +242,22 @@ export default function ManageReportDialog({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify(await buildPayload()),
       });
 
       const result = await response.json();
 
+      if (response.status === 401) {
+        onUnauthorized?.();
+        throw new Error("Session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
+      }
+
       if (!response.ok || result.status !== "success") {
-        throw new Error(result.message || "ไม่สามารถส่งรายงานได้");
+        throw new Error(
+          result.detail || result.message || "ไม่สามารถส่งรายงานได้",
+        );
       }
 
       const detailMessages = [];
@@ -291,6 +310,9 @@ export default function ManageReportDialog({
           <p className="text-slate-600 text-sm">
             ตรวจสอบความถูกต้องเรียบร้อยแล้ว! <br />
             คุณสามารถเลือกสั่งพิมพ์ PDF หรือส่งรายงานเข้าอีเมลได้
+          </p>
+          <p className="mt-3 text-xs font-medium text-slate-500">
+            ผู้ใช้งานปัจจุบัน: {authUser?.email || "-"}
           </p>
         </div>
 
@@ -359,7 +381,9 @@ export default function ManageReportDialog({
             {/* Send Button */}
             <button
               onClick={handleSend}
-              disabled={emailList.length === 0 || isSending || !printReady}
+              disabled={
+                emailList.length === 0 || isSending || !printReady || !authToken
+              }
               className="w-full px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <i className="fas fa-paper-plane"></i>

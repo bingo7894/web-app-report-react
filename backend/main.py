@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
+from supabase import create_client, Client
 import uvicorn, json, datetime, os, sys, asyncio, tempfile
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 import smtplib
 from email.message import EmailMessage
+import urllib.request
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
@@ -20,6 +24,79 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ─── Supabase Authentication Setup (เพิ่มใหม่) ──────────────────────────────────
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+else:
+    supabase = None
+    print("--> [Warning] Supabase URL หรือ Key ขาดหายใน .env (ระบบ Auth จะไม่ทำงาน)")
+
+security = HTTPBearer()
+
+class UserAuth(BaseModel):
+    email: str
+    password: str
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """ฟังก์ชันเช็ค Token เพื่อป้องกัน API"""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="ระบบ Supabase ไม่พร้อมใช้งาน กรุณาเช็คไฟล์ .env")
+    
+    token = credentials.credentials
+    try:
+        user_res = supabase.auth.get_user(token)
+        if not user_res.user:
+            raise HTTPException(status_code=401, detail="Token ไม่ถูกต้องหรือหมดอายุ")
+        return user_res.user
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"กรุณาล็อกอินก่อนใช้งาน ({str(e)})")
+
+
+# ─── Auth Endpoints (เพิ่มใหม่) ────────────────────────────────────────────────
+
+@app.post("/api/auth/signup")
+async def signup(user: UserAuth):
+    """สำหรับสมัครสมาชิกใหม่"""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="ระบบ Supabase ไม่พร้อมใช้งาน")
+    try:
+        res = supabase.auth.sign_up({"email": user.email, "password": user.password})
+        return {"status": "success", "message": "สมัครสมาชิกสำเร็จ"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/auth/login")
+async def login(user: UserAuth):
+    """สำหรับล็อกอินเข้าสู่ระบบ"""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="ระบบ Supabase ไม่พร้อมใช้งาน")
+    try:
+        res = supabase.auth.sign_in_with_password({"email": user.email, "password": user.password})
+        return {
+            "status": "success", 
+            "access_token": res.session.access_token,
+            "user": {
+                "email": res.user.email if res.user else user.email,
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="อีเมลหรือรหัสผ่านไม่ถูกต้อง")
+
+
+@app.get("/api/auth/me")
+async def get_me(current_user = Depends(get_current_user)):
+    """ใช้สำหรับตรวจสอบ session ปัจจุบันจาก access token"""
+    return {
+        "status": "success",
+        "user": {
+            "email": current_user.email,
+        },
+    }
+
 
 # ─── 1. PDF Generation (Playwright) ──────────────────────────────────────────
 
@@ -54,8 +131,6 @@ def send_email_with_pdf(data: dict, pdf_path: str):
     project = info.get("projectName", "—")
 
     # ── รับ recipients array จาก frontend ──────────────────────────
-    # frontend ใหม่ส่ง recipients: ["a@mail.com", "b@mail.com"]
-    # ถ้าไม่มี (เรียกจาก legacy) ให้ fallback ไปที่ generalInfo.email
     recipients: list = data.get("recipients", [])
     if not recipients:
         fallback = info.get("email", "").strip()
@@ -132,8 +207,6 @@ def send_email_with_pdf(data: dict, pdf_path: str):
 
 # ─── 3. Google Sheet & Calendar ──────────────────────────────────────────────
 
-import urllib.request
-
 def save_to_google_sheet(data: dict) -> (bool, str):
     webhook_url = os.getenv("GOOGLE_SHEET_WEBHOOK_URL", "").strip()
     if not webhook_url:
@@ -177,9 +250,6 @@ def save_to_google_sheet(data: dict) -> (bool, str):
         next_due_date = f"{next_year}-{datetime.datetime.now().strftime('%m-%d')}"
 
     job_type = data.get("inspectionType") if data.get("inspectionType") else data.get("jobType", "-")
-        
-    print("\n--- [DEBUG] ข้อมูลต้นทาง (data.get('generalInfo')) ---")
-    print(json.dumps(info, indent=2, ensure_ascii=False))
 
     # ── ใช้ email แรกใน recipients สำหรับบันทึกลง Sheet ───────────────
     recipients = data.get("recipients", [])
@@ -200,12 +270,6 @@ def save_to_google_sheet(data: dict) -> (bool, str):
         "nextYearAlert": next_year_alert,
         "nextDueDate": next_due_date
     }
-    
-    print("\n--- [DEBUG] ตลอดจับคู่ข้อมูลลง Google Sheet (A ถึง L) ---")
-    for i, (k, v) in enumerate(payload.items()):
-        if k != "nextDueDate":
-            print(f"คอลัมน์ {chr(65+i)} ({k}): {v}")
-    print("------------------------------------------\n")
     
     try:
         req = urllib.request.Request(webhook_url, method="POST")
@@ -229,14 +293,18 @@ def save_to_google_sheet(data: dict) -> (bool, str):
 
 # ─── Endpoint ────────────────────────────────────────────────────────────────
 
+# สังเกตตรงนี้: เพิ่ม current_user = Depends(get_current_user) เข้าไปเพื่อล็อคการใช้งาน
 @app.post("/api/submit-report")
-async def submit_report(request: Request):
+async def submit_report(request: Request, current_user = Depends(get_current_user)):
     try:
         data = await request.json()
         form_type = data.get("formType", "Form")
         html_content = data.get("htmlContent")
         
+        # print ว่าใครเป็นคนเรียกใช้งาน (ดึงอีเมลคนที่ล็อกอินมาแสดง)
         print(f"\n=== Report Received: {form_type} ===")
+        print(f"--> Request by Auth User: {current_user.email}")
+        
         recipients = data.get("recipients", [])
         print(f"--> Recipients: {recipients}")
         
