@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* คุณสามารถเก็บ CSS บางส่วนที่ซับซ้อนมากๆ ไว้ที่นี่ได้ เช่น CSS สำหรับ Print หน้า PDF */
+@media print {
+  @page {
+    margin: 0;
+    size: A4;
+  }
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

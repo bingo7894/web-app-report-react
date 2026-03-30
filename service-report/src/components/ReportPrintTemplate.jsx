@@ -1,0 +1,716 @@
+import React, { forwardRef } from "react";
+import { CHECKLIST_SECTIONS } from "../utils/config";
+
+function fmt(v) {
+  const value = String(v || "").trim();
+  return value || "—";
+}
+
+function fmtMultiline(v) {
+  const value = String(v || "").trim();
+  return value || " ";
+}
+
+function fmtDateToDMY(dString) {
+  if (!dString) return "..../..../........";
+  const parts = dString.split("T")[0].split("-");
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return dString;
+}
+
+function fmtDateTimeThai(value) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("th-TH", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getStatusColor(value) {
+  if (value === "ใช้ได้") return "#1f9d55";
+  if (value === "ใช้ไม่ได้") return "#d64545";
+  return "#555";
+}
+
+function getStatusIcon(value) {
+  if (value === "ใช้ได้") return "✔";
+  if (value === "ใช้ไม่ได้") return "✘";
+  return "—";
+}
+
+function getChecklistRemarks(formData) {
+  return CHECKLIST_SECTIONS.flatMap((section) =>
+    section.items.flatMap((item) => {
+      const remark = String(formData[`remark_${item.name}`] || "").trim();
+
+      if (!remark) {
+        return [];
+      }
+
+      return [
+        {
+          key: item.name,
+          no: item.no,
+          label: item.label,
+          remark,
+        },
+      ];
+    }),
+  );
+}
+
+function renderHeader(sigDateStr, codeNo) {
+  return (
+    <>
+      <div style={styles.topBrandRow}>
+        <img src="/img/Logo.jpg" alt="Logo" style={styles.logo} />
+        <div style={styles.qrWrap}>
+          <img src="/img/qrline.jpg" alt="QR Code" style={styles.qrCode} />
+          <div style={styles.qrCaption}>สแกนเพื่อเพิ่มเพื่อนเรา</div>
+        </div>
+      </div>
+
+      <table style={styles.titleTable}>
+        <tbody>
+          <tr>
+            <td colSpan="4" style={styles.titleCell}>
+              SERVICE REPORT
+            </td>
+          </tr>
+          <tr>
+            <td style={styles.metaLabelCell}>CODE NO.</td>
+            <td style={styles.metaValueCell}>{fmt(codeNo)}</td>
+            <td style={styles.metaLabelCell}>DATE:</td>
+            <td style={styles.metaValueCell}>{sigDateStr}</td>
+          </tr>
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+function renderSectionHeader(title, engTitle) {
+  return (
+    <div style={styles.sectionHeader}>
+      {title} / {engTitle}
+    </div>
+  );
+}
+
+function renderInfoRow(label, engLabel, value, extraLabel, extraEngLabel, extraValue) {
+  if (typeof extraLabel === "undefined") {
+    return (
+      <tr>
+        <td style={styles.labelCellSingle}>
+          <div style={styles.thLabel}>{label}</div>
+          <div style={styles.enLabel}>{engLabel}</div>
+        </td>
+        <td colSpan="3" style={styles.valueCellWide}>
+          {fmt(value)}
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr>
+      <td style={styles.labelCell}>
+        <div style={styles.thLabel}>{label}</div>
+        <div style={styles.enLabel}>{engLabel}</div>
+      </td>
+      <td style={styles.valueCell}>{fmt(value)}</td>
+      <td style={styles.labelCell}>
+        <div style={styles.thLabel}>{extraLabel}</div>
+        <div style={styles.enLabel}>{extraEngLabel}</div>
+      </td>
+      <td style={styles.valueCell}>{fmt(extraValue)}</td>
+    </tr>
+  );
+}
+
+function renderSignatureSection(signatures, sigDateStr) {
+  return (
+    <div style={styles.signatureSection}>
+      <div style={styles.signatureCard}>
+        <div style={styles.signatureImageArea}>
+          {signatures?.inspector ? (
+            <img
+              src={signatures.inspector}
+              alt="Inspector signature"
+              style={styles.signatureImage}
+            />
+          ) : null}
+        </div>
+        <div style={styles.signatureMeta}>
+          <div style={styles.signatureTitle}>ผู้ตรวจสอบอาคาร</div>
+          <div style={styles.signatureSubtitle}>Inspector</div>
+          <div style={styles.signatureDate}>วันที่ {sigDateStr}</div>
+        </div>
+      </div>
+
+      <div style={styles.signatureCard}>
+        <div style={styles.signatureImageArea}>
+          {signatures?.owner ? (
+            <img
+              src={signatures.owner}
+              alt="Owner signature"
+              style={styles.signatureImage}
+            />
+          ) : null}
+        </div>
+        <div style={styles.signatureMeta}>
+          <div style={styles.signatureTitle}>เจ้าของอาคาร / ผู้ดูแลอาคาร</div>
+          <div style={styles.signatureSubtitle}>Owner / Manager</div>
+          <div style={styles.signatureDate}>วันที่ {sigDateStr}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderForm1(formData, signatures, sigDateStr) {
+  const remarks = getChecklistRemarks(formData);
+
+  return (
+    <>
+      <div style={styles.pageBlock}>
+        {renderSectionHeader("ข้อมูลทั่วไป", "GENERAL INFORMATION")}
+        <table style={styles.sectionTable}>
+          <tbody>
+            {renderInfoRow("ชื่อโครงการ", "Project Name", formData.projectName)}
+            {renderInfoRow("ที่ตั้ง", "Address", formData.address)}
+            {renderInfoRow(
+              "ผู้ติดต่อ",
+              "Contact",
+              formData.contactName,
+              "ปฏิบัติงาน",
+              "Operated By",
+              formData.operatedBy,
+            )}
+            {renderInfoRow(
+              "เบอร์โทร",
+              "Mobile",
+              formData.phone,
+              "Email",
+              "Email",
+              formData.email,
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={styles.pageBlock}>
+        <div style={styles.inlineRemarkLabel}>
+          ประเภทการตรวจสอบ: {fmt(formData.inspectionType)}
+        </div>
+
+        <table style={styles.checklistTable}>
+          <thead>
+            <tr>
+              <th style={{ ...styles.checkHeadCell, width: "10%" }}>ข้อ</th>
+              <th style={{ ...styles.checkHeadCell, width: "50%" }}>
+                รายการตรวจสอบ
+              </th>
+              <th style={{ ...styles.checkHeadCell, width: "8%" }}>✔</th>
+              <th style={{ ...styles.checkHeadCell, width: "32%" }}>
+                ผลการตรวจสอบ
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {CHECKLIST_SECTIONS.map((section) => (
+              <React.Fragment key={section.id}>
+                <tr>
+                  <td colSpan="4" style={styles.sectionBandCell}>
+                    {section.printTitle}
+                  </td>
+                </tr>
+                {section.items.map((item) => {
+                  const value = formData[item.name];
+                  const statusColor = getStatusColor(value);
+
+                  return (
+                    <tr key={item.name}>
+                      <td style={styles.checkNoCell}>{item.no}</td>
+                      <td style={styles.checkLabelCell}>{item.label}</td>
+                      <td style={{ ...styles.checkResultCell, color: statusColor }}>
+                        {getStatusIcon(value)}
+                      </td>
+                      <td style={{ ...styles.checkResultTextCell, color: statusColor }}>
+                        {fmt(value)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ ...styles.remarkBox, ...styles.pageBlock }}>
+        <div style={styles.remarkTitle}>
+          GENERAL REMARKS (ความคิดเห็น / ข้อเสนอแนะเพิ่มเติม)
+        </div>
+        <div style={styles.generalRemarkText}>{fmt(formData.generalRemark)}</div>
+        {remarks.length > 0 && (
+          <div style={styles.problemListWrap}>
+            <div style={styles.problemListTitle}>สรุปปัญหาที่พบ / Summary of Issue:</div>
+            {remarks.map((item) => (
+              <div key={item.key} style={styles.problemItem}>
+                <span style={styles.problemBullet}>•</span>
+                <span>
+                  <strong>หัวข้อ {item.no}</strong> : {item.label} พบปัญหา :{" "}
+                  {item.remark}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={styles.pageBlock}>{renderSignatureSection(signatures, sigDateStr)}</div>
+    </>
+  );
+}
+
+function renderForm2(formData, signatures, sigDateStr) {
+  return (
+    <>
+      <div style={styles.pageBlock}>
+        {renderSectionHeader("ข้อมูลทั่วไป", "GENERAL INFORMATION")}
+        <table style={styles.sectionTable}>
+          <tbody>
+            {renderInfoRow("ชื่อโครงการ", "Project Name", formData.projectName)}
+            {renderInfoRow("ที่ตั้ง", "Address", formData.address)}
+            {renderInfoRow(
+              "ผู้ติดต่อ",
+              "Contact",
+              formData.contactName,
+              "ปฏิบัติงาน",
+              "Operated By",
+              formData.operatedBy,
+            )}
+            {renderInfoRow(
+              "เบอร์โทร",
+              "Mobile",
+              formData.phone,
+              "Email",
+              "Email",
+              formData.email,
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={styles.pageBlock}>
+        {renderSectionHeader("รายละเอียดการทำงาน", "SERVICE DETAILS")}
+        <table style={styles.sectionTable}>
+          <tbody>
+            {renderInfoRow(
+              "ประเภทงาน",
+              "Type of Work",
+              formData.jobType2 === "other" ? formData.jobTypeOther : formData.jobType2,
+            )}
+            {renderInfoRow("รายการ", "Service Rendered", formData.serviceRendered)}
+            {renderInfoRow("หมายเหตุ / Remark", "Remark", formData.serviceRemark)}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={styles.pageBlock}>
+        {renderSectionHeader("ปัญหาที่พบ", "NATURE OF PROBLEM")}
+        <table style={styles.sectionTable}>
+          <tbody>
+            <tr>
+              <td style={styles.labelCellSingleTop}>
+                <div style={styles.thLabel}>รายละเอียดปัญหา</div>
+              </td>
+              <td style={styles.problemValueCell}>{fmtMultiline(formData.problemDetail)}</td>
+              <td rowSpan="4" style={styles.drawingCell}>
+                <div style={styles.drawingTitle}>Drawing (ผังหน้างาน)</div>
+                <div style={styles.drawingBox}>
+                  {formData.drawingData ? (
+                    <img
+                      src={formData.drawingData}
+                      alt="Drawing"
+                      style={styles.drawingImage}
+                    />
+                  ) : null}
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style={styles.labelCellSingleTop}>
+                <div style={styles.thLabel}>ความเห็นวิศวกร</div>
+              </td>
+              <td style={styles.problemValueCell}>{fmtMultiline(formData.engineerRemark)}</td>
+            </tr>
+            <tr>
+              <td style={styles.labelCellSingleTop}>
+                <div style={styles.thLabel}>ความเห็นลูกค้า</div>
+              </td>
+              <td style={styles.problemValueCell}>
+                {fmtMultiline(formData.customerFeedback)}
+              </td>
+            </tr>
+            <tr>
+              <td style={styles.labelCellSingleTop}>
+                <div style={styles.thLabel}>สถานะโดยรวม</div>
+              </td>
+              <td
+                style={{
+                  ...styles.problemValueCell,
+                  color: getStatusColor(formData.overallStatus),
+                  fontWeight: 700,
+                }}
+              >
+                {fmt(formData.overallStatus)}
+              </td>
+            </tr>
+            <tr>
+              <td style={styles.labelCellSingleTop}>
+                <div style={styles.thLabel}>เวลาสิ้นสุดงาน</div>
+              </td>
+              <td colSpan="2" style={styles.valueCellWide}>
+                {fmtDateTimeThai(formData.endTime)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style={styles.pageBlock}>{renderSignatureSection(signatures, sigDateStr)}</div>
+    </>
+  );
+}
+
+const ReportPrintTemplate = forwardRef(
+  ({ formData = {}, signatures = {} }, ref) => {
+    const sigDateStr = fmtDateToDMY(formData.reportDate);
+    const isForm2 = formData.formType === "form2";
+
+    return (
+      <div ref={ref} style={styles.page}>
+        {renderHeader(sigDateStr, formData.codeNo)}
+        {isForm2
+          ? renderForm2(formData, signatures, sigDateStr)
+          : renderForm1(formData, signatures, sigDateStr)}
+
+        <div style={styles.printInfo}>Printed on {new Date().toLocaleString("th-TH")}</div>
+      </div>
+    );
+  },
+);
+
+ReportPrintTemplate.displayName = "ReportPrintTemplate";
+
+export default ReportPrintTemplate;
+
+const borderColor = "#5d6674";
+
+const styles = {
+  page: {
+    backgroundColor: "#fff",
+    color: "#111827",
+    fontFamily: "Arial, sans-serif",
+    fontSize: "10px",
+    lineHeight: 1.25,
+    padding: "18px",
+    pageBreakAfter: "always",
+  },
+  topBrandRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: "12px",
+  },
+  logo: {
+    width: "132px",
+    height: "58px",
+    objectFit: "contain",
+  },
+  qrWrap: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "4px",
+  },
+  qrCode: {
+    width: "54px",
+    height: "54px",
+    objectFit: "contain",
+  },
+  qrCaption: {
+    fontSize: "7px",
+    color: "#4b5563",
+  },
+  titleTable: {
+    width: "100%",
+    borderCollapse: "collapse",
+    marginBottom: "10px",
+  },
+  titleCell: {
+    border: `1px solid ${borderColor}`,
+    textAlign: "center",
+    fontSize: "16px",
+    letterSpacing: "1.5px",
+    color: "#1b2f8b",
+    fontWeight: 700,
+    padding: "5px 0",
+  },
+  metaLabelCell: {
+    border: `1px solid ${borderColor}`,
+    padding: "3px 6px",
+    fontSize: "9px",
+    width: "12%",
+  },
+  metaValueCell: {
+    border: `1px solid ${borderColor}`,
+    padding: "3px 8px",
+    fontSize: "10px",
+    width: "38%",
+  },
+  sectionHeader: {
+    border: `1px solid ${borderColor}`,
+    borderBottom: "none",
+    color: "#a3aab5",
+    fontSize: "10px",
+    fontWeight: 700,
+    padding: "4px 6px",
+  },
+  sectionTable: {
+    width: "100%",
+    borderCollapse: "collapse",
+    marginBottom: "10px",
+  },
+  thLabel: {
+    fontSize: "10px",
+    fontWeight: 700,
+    color: "#111827",
+  },
+  enLabel: {
+    fontSize: "8px",
+    color: "#374151",
+    marginTop: "1px",
+  },
+  labelCell: {
+    width: "20%",
+    border: `1px solid ${borderColor}`,
+    padding: "3px 5px",
+    verticalAlign: "top",
+    fontWeight: 700,
+  },
+  labelCellSingle: {
+    width: "25%",
+    border: `1px solid ${borderColor}`,
+    padding: "3px 5px",
+    verticalAlign: "top",
+    fontWeight: 700,
+  },
+  labelCellSingleTop: {
+    width: "20%",
+    border: `1px solid ${borderColor}`,
+    padding: "4px 5px",
+    verticalAlign: "top",
+    fontWeight: 700,
+  },
+  valueCell: {
+    width: "30%",
+    border: `1px solid ${borderColor}`,
+    padding: "4px 8px",
+    verticalAlign: "top",
+  },
+  valueCellWide: {
+    border: `1px solid ${borderColor}`,
+    padding: "4px 8px",
+    verticalAlign: "top",
+    whiteSpace: "pre-wrap",
+  },
+  inlineRemarkLabel: {
+    fontSize: "10px",
+    fontWeight: 700,
+    color: "#4b5563",
+    borderLeft: "4px solid #f59e0b",
+    paddingLeft: "6px",
+    margin: "2px 0 8px",
+  },
+  checklistTable: {
+    width: "100%",
+    borderCollapse: "collapse",
+    marginBottom: "10px",
+  },
+  checkHeadCell: {
+    border: `1px solid ${borderColor}`,
+    color: "#9ca3af",
+    fontWeight: 700,
+    textAlign: "center",
+    fontSize: "10px",
+    padding: "4px 6px",
+  },
+  sectionBandCell: {
+    border: `1px solid ${borderColor}`,
+    background: "#f7f8fc",
+    color: "#1b2f8b",
+    fontWeight: 700,
+    padding: "5px 6px",
+  },
+  checkNoCell: {
+    border: `1px solid ${borderColor}`,
+    color: "#1b2f8b",
+    fontWeight: 700,
+    textAlign: "center",
+    padding: "4px",
+    verticalAlign: "top",
+  },
+  checkLabelCell: {
+    border: `1px solid ${borderColor}`,
+    padding: "4px 6px",
+    verticalAlign: "top",
+  },
+  checkResultCell: {
+    border: `1px solid ${borderColor}`,
+    textAlign: "center",
+    padding: "4px",
+    fontWeight: 700,
+    verticalAlign: "top",
+  },
+  checkResultTextCell: {
+    border: `1px solid ${borderColor}`,
+    textAlign: "center",
+    padding: "4px 6px",
+    fontWeight: 700,
+    verticalAlign: "top",
+  },
+  remarkBox: {
+    border: "1px solid #4f63c5",
+    borderRadius: "4px",
+    padding: "8px 10px",
+    marginBottom: "8px",
+  },
+  remarkTitle: {
+    color: "#1b2f8b",
+    fontWeight: 700,
+    marginBottom: "6px",
+  },
+  generalRemarkText: {
+    fontWeight: 700,
+    marginBottom: "8px",
+  },
+  problemListWrap: {
+    borderTop: "1px dashed #c7d2fe",
+    paddingTop: "6px",
+    color: "#d64545",
+  },
+  problemListTitle: {
+    fontWeight: 700,
+    marginBottom: "3px",
+  },
+  problemItem: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "4px",
+    marginTop: "3px",
+    breakInside: "avoid",
+    pageBreakInside: "avoid",
+  },
+  problemBullet: {
+    flex: "0 0 auto",
+  },
+  problemValueCell: {
+    border: `1px solid ${borderColor}`,
+    padding: "4px 8px",
+    verticalAlign: "top",
+    minHeight: "52px",
+    whiteSpace: "pre-wrap",
+  },
+  drawingCell: {
+    width: "36%",
+    border: `1px solid ${borderColor}`,
+    padding: "4px 6px",
+    verticalAlign: "top",
+  },
+  drawingTitle: {
+    textAlign: "center",
+    fontWeight: 700,
+    marginBottom: "6px",
+  },
+  drawingBox: {
+    height: "138px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "4px",
+    background: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  drawingImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+  },
+  signatureSection: {
+    display: "flex",
+    gap: "8px",
+    pageBreakInside: "avoid",
+    breakInside: "avoid",
+  },
+  signatureCard: {
+    flex: 1,
+    border: "1px solid #cbd5e1",
+    borderRadius: "4px",
+    overflow: "hidden",
+    background: "#fff",
+  },
+  signatureImageArea: {
+    height: "46px",
+    borderBottom: "1px solid #e5e7eb",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "4px",
+  },
+  signatureImage: {
+    maxWidth: "100%",
+    maxHeight: "38px",
+    objectFit: "contain",
+  },
+  signatureMeta: {
+    textAlign: "center",
+    padding: "5px 4px 6px",
+    color: "#1b2f8b",
+  },
+  signatureTitle: {
+    fontWeight: 700,
+    fontSize: "9px",
+  },
+  signatureSubtitle: {
+    fontSize: "8px",
+  },
+  signatureDate: {
+    marginTop: "2px",
+    fontSize: "8px",
+  },
+  printInfo: {
+    marginTop: "14px",
+    textAlign: "center",
+    color: "#9ca3af",
+    fontSize: "8px",
+    borderTop: "1px solid #e5e7eb",
+    paddingTop: "8px",
+  },
+  pageBlock: {
+    breakInside: "avoid",
+    pageBreakInside: "avoid",
+  },
+};
