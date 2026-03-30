@@ -269,6 +269,27 @@ export default function ReportFooter({
           target: "jobTypeOther",
         };
       }
+
+      if (
+        formData.overallStatus === "ใช้ไม่ได้" &&
+        !String(formData.overallStatusAction || "").trim()
+      ) {
+        return {
+          message: "กรุณาเลือกแนวทางดำเนินการเมื่อสถานะใช้ไม่ได้",
+          target: "overallStatusAction",
+        };
+      }
+
+      if (
+        formData.overallStatus === "ใช้ไม่ได้" &&
+        formData.overallStatusAction === "other" &&
+        !String(formData.overallStatusOther || "").trim()
+      ) {
+        return {
+          message: "กรุณาระบุรายละเอียดเพิ่มเติมของสถานะใช้ไม่ได้",
+          target: "overallStatusOther",
+        };
+      }
     }
 
     return null;

@@ -47,6 +47,29 @@ function getStatusIcon(value) {
   return "—";
 }
 
+function getForm2JobType(formData) {
+  return formData.jobType2 === "other" ? formData.jobTypeOther : formData.jobType2;
+}
+
+function getForm2OverallStatusText(formData) {
+  const status = String(formData.overallStatus || "").trim();
+
+  if (status !== "ใช้ไม่ได้") {
+    return status;
+  }
+
+  const action =
+    formData.overallStatusAction === "other"
+      ? formData.overallStatusOther
+      : formData.overallStatusAction;
+
+  if (!String(action || "").trim()) {
+    return status;
+  }
+
+  return `${status} - ${action}`;
+}
+
 function getChecklistRemarks(formData) {
   return CHECKLIST_SECTIONS.flatMap((section) =>
     section.items.flatMap((item) => {
@@ -319,7 +342,7 @@ function renderForm2(formData, signatures, sigDateStr) {
             {renderInfoRow(
               "ประเภทงาน",
               "Type of Work",
-              formData.jobType2 === "other" ? formData.jobTypeOther : formData.jobType2,
+              getForm2JobType(formData),
             )}
             {renderInfoRow("รายการ", "Service Rendered", formData.serviceRendered)}
             {renderInfoRow("หมายเหตุ / Remark", "Remark", formData.serviceRemark)}
@@ -374,7 +397,7 @@ function renderForm2(formData, signatures, sigDateStr) {
                   fontWeight: 700,
                 }}
               >
-                {fmt(formData.overallStatus)}
+                {fmt(getForm2OverallStatusText(formData))}
               </td>
             </tr>
             <tr>

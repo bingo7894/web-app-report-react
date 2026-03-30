@@ -1,11 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 
 const workTypeOptions = [
-  "บำรุงรักษา",
-  "ซ่อมแซม",
-  "ติดตั้ง",
-  "ตรวจเช็กระบบ",
-  "อื่นๆ",
+  "ระบบไฟฟ้า",
+  "ระบบป้องกันอันตรายจากฟ้าผ่า",
+  "ระบบควบคุมควันไฟ",
+  "ความมั่นคงแข็งแรงอาคาร",
+  "อื่นๆ (โปรดระบุ)",
+];
+
+const overallStatusActions = [
+  "เร่งด่วน",
+  "ไม่เร่งด่วน",
+  "ต้องอยู่ในแผนดำเนินการ",
+  "อื่นๆ (ระบุ)",
 ];
 
 function SectionCard({ iconClass, title, englishTitle, children }) {
@@ -143,13 +150,45 @@ function DrawingPad({ value, onChange }) {
 }
 
 export default function FormGeneralService({ formData, handleChange }) {
-  const handleDrawingChange = (drawingData) => {
+  const updateField = (name, value) => {
     handleChange({
       target: {
-        name: "drawingData",
-        value: drawingData,
+        name,
+        value,
       },
     });
+  };
+
+  const handleDrawingChange = (drawingData) => {
+    updateField("drawingData", drawingData);
+  };
+
+  const handleJobTypeChange = (event) => {
+    const { value } = event.target;
+    updateField("jobType2", value);
+
+    if (value !== "other") {
+      updateField("jobTypeOther", "");
+    }
+  };
+
+  const handleOverallStatusChange = (event) => {
+    const { value } = event.target;
+    updateField("overallStatus", value);
+
+    if (value !== "ใช้ไม่ได้") {
+      updateField("overallStatusAction", "");
+      updateField("overallStatusOther", "");
+    }
+  };
+
+  const handleOverallStatusActionChange = (event) => {
+    const { value } = event.target;
+    updateField("overallStatusAction", value);
+
+    if (value !== "other") {
+      updateField("overallStatusOther", "");
+    }
   };
 
   return (
@@ -262,14 +301,14 @@ export default function FormGeneralService({ formData, handleChange }) {
               <select
                 name="jobType2"
                 value={formData.jobType2}
-                onChange={handleChange}
+                onChange={handleJobTypeChange}
                 className={inputClassName}
               >
                 <option value="">-- เลือกประเภทงาน --</option>
                 {workTypeOptions.map((option) => (
                   <option
                     key={option}
-                    value={option === "อื่นๆ" ? "other" : option}
+                    value={option === "อื่นๆ (โปรดระบุ)" ? "other" : option}
                   >
                     {option}
                   </option>
@@ -385,7 +424,7 @@ export default function FormGeneralService({ formData, handleChange }) {
                     name="overallStatus"
                     value="ใช้ได้"
                     checked={formData.overallStatus === "ใช้ได้"}
-                    onChange={handleChange}
+                    onChange={handleOverallStatusChange}
                   />
                   ใช้ได้
                 </label>
@@ -395,10 +434,48 @@ export default function FormGeneralService({ formData, handleChange }) {
                     name="overallStatus"
                     value="ใช้ไม่ได้"
                     checked={formData.overallStatus === "ใช้ไม่ได้"}
-                    onChange={handleChange}
+                    onChange={handleOverallStatusChange}
                   />
                   ใช้ไม่ได้
                 </label>
+
+                {formData.overallStatus === "ใช้ไม่ได้" && (
+                  <div className="ml-2 border-l-4 border-red-500 pl-4">
+                    <div className="space-y-3">
+                      {overallStatusActions.map((option) => {
+                        const radioValue =
+                          option === "อื่นๆ (ระบุ)" ? "other" : option;
+
+                        return (
+                          <label
+                            key={option}
+                            className="flex items-center gap-2 text-[16px] text-slate-900"
+                          >
+                            <input
+                              type="radio"
+                              name="overallStatusAction"
+                              value={radioValue}
+                              checked={formData.overallStatusAction === radioValue}
+                              onChange={handleOverallStatusActionChange}
+                            />
+                            {option}
+                          </label>
+                        );
+                      })}
+
+                      {formData.overallStatusAction === "other" && (
+                        <input
+                          type="text"
+                          name="overallStatusOther"
+                          value={formData.overallStatusOther}
+                          onChange={handleChange}
+                          placeholder="ระบุรายละเอียดเพิ่มเติม"
+                          className={inputClassName}
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </Field>
           </div>

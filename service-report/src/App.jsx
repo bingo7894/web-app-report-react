@@ -33,6 +33,8 @@ function App() {
     customerFeedback: "",
     drawingData: "",
     overallStatus: "",
+    overallStatusAction: "",
+    overallStatusOther: "",
     endTime: "",
   });
 
