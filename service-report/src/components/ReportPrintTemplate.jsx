@@ -73,7 +73,11 @@ function getForm2OverallStatusText(formData) {
 function getChecklistRemarks(formData) {
   return CHECKLIST_SECTIONS.flatMap((section) =>
     section.items.flatMap((item) => {
-      const remark = String(formData[`remark_${item.name}`] || "").trim();
+      const rawRemark = String(formData[`remark_${item.name}`] || "").trim();
+      const remark = rawRemark
+        .replace(`หัวข้อ ${item.no} ${item.label} พบปัญหา :`, "")
+        .replace(`หัวข้อ ${item.no} ${item.label} พบว่า :`, "")
+        .trim();
 
       if (!remark) {
         return [];
