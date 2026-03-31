@@ -155,7 +155,7 @@ function DrawingPad({ value, onChange }) {
   );
 }
 
-export default function FormGeneralService({ formData, handleChange }) {
+export default function GeneralServiceForm({ formData, handleChange }) {
   const updateField = (name, value) => {
     handleChange({
       target: {

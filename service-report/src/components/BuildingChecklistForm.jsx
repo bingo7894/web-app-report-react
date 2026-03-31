@@ -1,7 +1,7 @@
 import React from "react";
 import { CHECKLIST_SECTIONS } from "../utils/config";
 
-function FormChecklist({ formData, handleChange }) {
+function BuildingChecklistForm({ formData, handleChange }) {
   // Helper to pair items: [[1, 2], [3, 4], [5, 6], [7, null]]
   const pairItems = (items) => {
     const pairs = [];
@@ -144,4 +144,4 @@ function FormChecklist({ formData, handleChange }) {
   );
 }
 
-export default FormChecklist;
+export default BuildingChecklistForm;
