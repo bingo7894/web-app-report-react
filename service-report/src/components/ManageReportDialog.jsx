@@ -5,6 +5,13 @@ import { BACKEND_URL } from "../utils/config";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const splitEmailInput = (value) =>
+  String(value || "")
+    .replace(/["']/g, "")
+    .split(/[\s,;]+/)
+    .map((email) => email.trim())
+    .filter(Boolean);
+
 const translateBackendMessage = (message) => {
   if (!message) return "";
 
@@ -31,6 +38,7 @@ const translateBackendMessage = (message) => {
 export default function ManageReportDialog({
   isOpen,
   onClose,
+  onResetForm,
   formData = {},
   signatures = {},
   authToken = "",
@@ -84,23 +92,22 @@ export default function ManageReportDialog({
   if (!isOpen) return null;
 
   const handleAddEmail = () => {
-    const nextEmail = emailInput.trim();
-    if (!nextEmail) {
+    const nextEmails = splitEmailInput(emailInput);
+    if (nextEmails.length === 0) {
       return;
     }
 
-    if (!emailPattern.test(nextEmail)) {
+    const invalidEmails = nextEmails.filter((email) => !emailPattern.test(email));
+    if (invalidEmails.length > 0) {
       setSendResult({
         type: "error",
-        message: "รูปแบบอีเมลไม่ถูกต้อง",
+        message: `รูปแบบอีเมลไม่ถูกต้อง: ${invalidEmails.join(", ")}`,
       });
       return;
     }
 
-    if (!emailList.includes(nextEmail)) {
-      setEmailList([...emailList, nextEmail]);
-      setSendResult(null);
-    }
+    setEmailList((prev) => [...new Set([...prev, ...nextEmails])]);
+    setSendResult(null);
 
     setEmailInput("");
   };
@@ -291,6 +298,11 @@ export default function ManageReportDialog({
     onClose();
   };
 
+  const handleReset = () => {
+    onResetForm?.();
+    onClose();
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
@@ -298,7 +310,14 @@ export default function ManageReportDialog({
     >
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full overflow-hidden transform transition-all max-h-[90vh] overflow-y-auto">
         {/* ส่วนหัว - Icon และ Title */}
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-8 py-8 text-center border-b border-blue-200 flex-shrink-0">
+        <div className="relative bg-gradient-to-r from-blue-50 to-blue-100 px-8 py-8 text-center border-b border-blue-200 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
+          >
+            <i className="fas fa-times"></i>
+          </button>
           <div className="flex justify-center mb-4">
             <div className="bg-blue-100 p-4 rounded-full">
               <i className="fas fa-list-check text-3xl text-blue-600"></i>
@@ -331,10 +350,16 @@ export default function ManageReportDialog({
             <div className="flex gap-3 mb-4">
               <input
                 type="email"
-                placeholder="example@email.com"
+                multiple
+                placeholder="example1@email.com, example2@email.com"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleAddEmail()}
+                onBlur={() => {
+                  if (emailInput.includes(",") || emailInput.includes(";")) {
+                    handleAddEmail();
+                  }
+                }}
                 className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
               />
               <button
@@ -409,10 +434,10 @@ export default function ManageReportDialog({
               <i className="fas fa-print"></i> พิมพ์รายงาน (PDF)
             </button>
             <button
-              onClick={onClose}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+              onClick={handleReset}
+              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
             >
-              <i className="fas fa-times"></i> ปิด
+              <i className="fas fa-rotate-left"></i> ล้างฟอร์ม
             </button>
           </div>
         </div>
