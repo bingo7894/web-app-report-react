@@ -16,9 +16,13 @@ function BuildingChecklistForm({
     return pairs;
   };
 
+  const getRemarkPrefix = (item) =>
+    `หัวข้อ ${item.no} ${item.label} พบว่า : `;
+
   const handleStatusChange = (event, item) => {
     const { value } = event.target;
 
+    // ส่งค่าของตัว Radio Button ก่อน
     handleChange(event);
 
     if (value === "ใช้ได้") {
@@ -26,6 +30,15 @@ function BuildingChecklistForm({
         target: {
           name: `remark_${item.name}`,
           value: "",
+        },
+      });
+    } else if (value === "ใช้ไม่ได้") {
+      // เมื่อเลือก "ใช้ไม่ได้" -> ใส่ Prefix ทันที
+      const prefix = getRemarkPrefix(item);
+      handleChange({
+        target: {
+          name: `remark_${item.name}`,
+          value: prefix,
         },
       });
     }
@@ -79,17 +92,49 @@ function BuildingChecklistForm({
     );
   };
 
-  const getRemarkPrefix = (item) =>
-    `หัวข้อ ${item.no} ${item.label} พบปัญหา : `;
+
+  const handleKeyDown = (event, item) => {
+    const prefix = getRemarkPrefix(item);
+    const { selectionStart, selectionEnd } = event.target;
+
+    // ป้องกันการลบ (Backspace) เมื่ออยู่ในเขต Prefix
+    if (event.key === "Backspace") {
+      // ถ้า Cursor อยู่ที่จุดเริ่มของ Prefix หรือ คลุมดำโดน Prefix
+      if (selectionStart < prefix.length || (selectionStart === prefix.length && selectionStart === selectionEnd)) {
+        if (selectionStart <= prefix.length) {
+          event.preventDefault();
+        }
+      }
+    }
+
+    // ป้องกันการลบ (Delete) เมื่ออยู่ในเขต Prefix
+    if (event.key === "Delete") {
+      if (selectionStart < prefix.length) {
+        event.preventDefault();
+      }
+    }
+
+    // ป้องกันการเลือกทั้งหมด (Ctrl+A) แล้วกดลบ หรือการพิมพ์ทับ Prefix
+    if (selectionStart < prefix.length && event.key !== "ArrowRight" && event.key !== "ArrowLeft" && event.key !== "ArrowUp" && event.key !== "ArrowDown" && !event.ctrlKey && !event.metaKey) {
+        // อนญาตให้เลื่อน Cursor ได้ แต่ห้ามพิมพ์หรือลบทับ Prefix
+        // (ยกเว้นปุ่มควบคุม)
+    }
+  };
 
   const handleRemarkChange = (event, item) => {
     const prefix = getRemarkPrefix(item);
-    const value = event.target.value;
+    let { value } = event.target;
+
+    // ถ้าหลุดมาได้ (เช่น ลากเมาส์ลบ) ให้ดึง Prefix กลับมาทันที
+    if (!value.startsWith(prefix)) {
+      value = prefix + value.replace(prefix, ""); // พยายามรักษาข้อความต่อท้าย (ถ้ามี)
+      if (!value.startsWith(prefix)) value = prefix; // ถ้ายังไม่ได้อีก ให้เอาแค่ Prefix
+    }
 
     handleChange({
       target: {
         name: `remark_${item.name}`,
-        value: value.startsWith(prefix) ? value : `${prefix}${value}`,
+        value: value,
       },
     });
   };
@@ -150,11 +195,9 @@ function BuildingChecklistForm({
                       </label>
                       <textarea
                         name={`remark_${item.name}`}
-                        value={
-                          formData[`remark_${item.name}`] ||
-                          getRemarkPrefix(item)
-                        }
+                        value={formData[`remark_${item.name}`] || ""}
                         onChange={(event) => handleRemarkChange(event, item)}
+                        onKeyDown={(event) => handleKeyDown(event, item)}
                         onBlur={handleBlur}
                         rows="2"
                         className={`w-full rounded-md bg-[#fffdf2] px-3 py-3 text-[13px] outline-none transition focus:ring-2 ${
