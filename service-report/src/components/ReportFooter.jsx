@@ -25,9 +25,6 @@ const SignaturePad = forwardRef(
   (
     {
       label,
-      date,
-      onDateChange,
-      variant = "form1",
       scrollId,
       errorMessage,
       initialSignatureData = null,
@@ -35,14 +32,12 @@ const SignaturePad = forwardRef(
     },
     ref,
   ) => {
-  ({ label, scrollId, errorMessage }, ref) => {
     const containerRef = useRef(null);
     const canvasRef = useRef(null);
     const isDrawingRef = useRef(false);
     const hasDrawnRef = useRef(false);
     const signatureDataUrlRef = useRef(null);
     const resizeFrameRef = useRef(null);
-    const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
     const restoreSignature = (dataUrl) => {
       const canvas = canvasRef.current;
@@ -355,7 +350,10 @@ export default function ReportFooter({
   const inspectorSigRef = useRef();
   const ownerSigRef = useRef();
 
-  useEffect(() => {
+  // Sync state from props during render (React Best Practice for adjusting state from props)
+  const [prevFooterDraft, setPrevFooterDraft] = useState(footerDraft);
+  if (footerDraft !== prevFooterDraft) {
+    setPrevFooterDraft(footerDraft);
     setRemark(footerDraft.generalRemark || "");
     setInspectorDate(footerDraft.inspectorDate || "");
     setOwnerDate(footerDraft.ownerDate || "");
@@ -363,25 +361,43 @@ export default function ReportFooter({
       inspector: footerDraft.signatures?.inspector || null,
       owner: footerDraft.signatures?.owner || null,
     });
-    syncSignatureDatesRef.current = footerDraft.syncSignatureDates !== false;
+  }
+
+  useEffect(() => {
+    if (footerDraft.syncSignatureDates !== undefined) {
+      syncSignatureDatesRef.current = footerDraft.syncSignatureDates !== false;
+    }
+  }, [footerDraft.syncSignatureDates]);
+
+  useEffect(() => {
+    const isDifferent =
+      remark !== (footerDraft.generalRemark || "") ||
+      inspectorDate !== (footerDraft.inspectorDate || "") ||
+      ownerDate !== (footerDraft.ownerDate || "") ||
+      signatures.inspector !== (footerDraft.signatures?.inspector || null) ||
+      signatures.owner !== (footerDraft.signatures?.owner || null);
+
+    if (isDifferent) {
+      setFooterDraft?.({
+        generalRemark: remark,
+        inspectorDate,
+        ownerDate,
+        signatures,
+        syncSignatureDates: syncSignatureDatesRef.current,
+      });
+    }
   }, [
+    remark,
+    inspectorDate,
+    ownerDate,
+    signatures,
     footerDraft.generalRemark,
     footerDraft.inspectorDate,
     footerDraft.ownerDate,
     footerDraft.signatures?.inspector,
     footerDraft.signatures?.owner,
-    footerDraft.syncSignatureDates,
+    setFooterDraft,
   ]);
-
-  useEffect(() => {
-    setFooterDraft?.({
-      generalRemark: remark,
-      inspectorDate,
-      ownerDate,
-      signatures,
-      syncSignatureDates: syncSignatureDatesRef.current,
-    });
-  }, [remark, inspectorDate, ownerDate, signatures, setFooterDraft]);
 
   useEffect(() => {
     const reportDateValue = String(formData.reportDate || "");
@@ -438,8 +454,6 @@ export default function ReportFooter({
       errors[field] = message;
     }
   };
-
-  const getRemarkPrefix = (item) => `หัวข้อ ${item.no} ${item.label} พบปัญหา :`;
 
   const isRemarkIncomplete = (item) => {
     const value = String(formData[`remark_${item.name}`] || "").trim();
@@ -867,6 +881,10 @@ export default function ReportFooter({
                   label="ผู้ตรวจสอบอาคาร (Inspector)"
                   scrollId="signature-inspector"
                   errorMessage={validationErrors["signature-inspector"]}
+                  initialSignatureData={signatures.inspector}
+                  onSignatureChange={(value) =>
+                    setSignatures((prev) => ({ ...prev, inspector: value }))
+                  }
                 />
                 <div className="mt-4 border-t border-slate-200 pt-4">
                   <label className="mb-1 block text-[11px] font-bold uppercase text-slate-400">
@@ -889,7 +907,7 @@ export default function ReportFooter({
             </div>
             <button
               type="button"
-              onClick={() => inspectorSigRef.current?.clearSignature?.()}
+              onClick={() => setSignatureClearTarget("inspector")}
               className={`${signatureActionButtonClass} mt-3`}
             >
               <i className="fas fa-eraser"></i> ลบลายเซ็น
@@ -904,6 +922,10 @@ export default function ReportFooter({
                   label="เจ้าของอาคาร / ผู้ดูแลอาคาร"
                   scrollId="signature-owner"
                   errorMessage={validationErrors["signature-owner"]}
+                  initialSignatureData={signatures.owner}
+                  onSignatureChange={(value) =>
+                    setSignatures((prev) => ({ ...prev, owner: value }))
+                  }
                 />
                 <div className="mt-4 border-t border-slate-200 pt-4">
                   <label className="mb-1 block text-[11px] font-bold uppercase text-slate-400">
@@ -926,7 +948,7 @@ export default function ReportFooter({
             </div>
             <button
               type="button"
-              onClick={() => ownerSigRef.current?.clearSignature?.()}
+              onClick={() => setSignatureClearTarget("owner")}
               className={`${signatureActionButtonClass} mt-3`}
             >
               <i className="fas fa-eraser"></i> ลบลายเซ็น
