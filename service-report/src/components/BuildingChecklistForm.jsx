@@ -11,6 +11,21 @@ function BuildingChecklistForm({ formData, handleChange }) {
     return pairs;
   };
 
+  const handleStatusChange = (event, item) => {
+    const { value } = event.target;
+
+    handleChange(event);
+
+    if (value === "ใช้ได้") {
+      handleChange({
+        target: {
+          name: `remark_${item.name}`,
+          value: "",
+        },
+      });
+    }
+  };
+
   const renderItemCell = (item, isLeftColumn = true) => {
     if (!item) return null;
 
@@ -33,7 +48,7 @@ function BuildingChecklistForm({ formData, handleChange }) {
                 name={item.name}
                 value="ใช้ได้"
                 checked={formData[item.name] === "ใช้ได้"}
-                onChange={handleChange}
+                onChange={(event) => handleStatusChange(event, item)}
                 className="h-[13px] w-[13px] cursor-pointer text-blue-600 focus:ring-blue-500"
               />
               ใช้ได้
@@ -44,7 +59,7 @@ function BuildingChecklistForm({ formData, handleChange }) {
                 name={item.name}
                 value="ใช้ไม่ได้"
                 checked={formData[item.name] === "ใช้ไม่ได้"}
-                onChange={handleChange}
+                onChange={(event) => handleStatusChange(event, item)}
                 className="h-[13px] w-[13px] cursor-pointer text-blue-600 focus:ring-blue-500"
               />
               ใช้ไม่ได้
@@ -55,7 +70,8 @@ function BuildingChecklistForm({ formData, handleChange }) {
     );
   };
 
-  const getRemarkPrefix = (item) => `หัวข้อ ${item.no} ${item.label} พบว่า : `;
+  const getRemarkPrefix = (item) =>
+    `หัวข้อ ${item.no} ${item.label} พบปัญหา : `;
 
   const handleRemarkChange = (event, item) => {
     const prefix = getRemarkPrefix(item);

@@ -95,7 +95,43 @@ function getChecklistRemarks(formData) {
   );
 }
 
-function renderHeader(sigDateStr, codeNo) {
+function shouldMoveForm1ClosingSectionToNewPage(remarks, formData) {
+  const generalRemarkLength = String(formData.generalRemark || "").trim().length;
+
+  return remarks.length >= 5 || generalRemarkLength > 120;
+}
+
+function renderForm1Header(sigDateStr, codeNo) {
+  return (
+    <>
+      <div style={styles.form1TopBrandRow}>
+        <img src="/img/Logo.jpg" alt="Logo" style={styles.form1Logo} />
+        <div style={styles.form1QrWrap}>
+          <img src="/img/qrline.jpg" alt="QR Code" style={styles.form1QrCode} />
+          <div style={styles.form1QrCaption}>สแกนเพื่อเพิ่มเพื่อนเรา</div>
+        </div>
+      </div>
+
+      <table style={styles.form1TitleTable}>
+        <tbody>
+          <tr>
+            <td colSpan="4" style={styles.form1TitleCell}>
+              SERVICE REPORT
+            </td>
+          </tr>
+          <tr>
+            <td style={styles.form1MetaLabelCell}>CODE NO.</td>
+            <td style={styles.form1MetaValueCell}>{fmt(codeNo)}</td>
+            <td style={styles.form1MetaLabelCell}>DATE:</td>
+            <td style={styles.form1MetaValueCell}>{sigDateStr}</td>
+          </tr>
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+function renderDefaultHeader(sigDateStr, codeNo) {
   return (
     <>
       <div style={styles.topBrandRow}>
@@ -206,6 +242,45 @@ function renderSignatureSection(signatures, sigDateStr) {
 
 function renderForm1(formData, signatures, sigDateStr) {
   const remarks = getChecklistRemarks(formData);
+  const moveClosingSectionToNewPage = shouldMoveForm1ClosingSectionToNewPage(
+    remarks,
+    formData,
+  );
+  const closingSection = (
+    <div
+      style={{
+        ...styles.pageBlock,
+        ...(moveClosingSectionToNewPage ? styles.pageBreakBefore : null),
+      }}
+    >
+      <div style={styles.remarkBox}>
+        <div style={styles.remarkTitle}>
+          GENERAL REMARKS (ความคิดเห็น / ข้อเสนอแนะเพิ่มเติม)
+        </div>
+        <div style={styles.generalRemarkText}>{fmt(formData.generalRemark)}</div>
+        {remarks.length > 0 && (
+          <div style={styles.problemListWrap}>
+            <div style={styles.problemListTitle}>
+              สรุปปัญหาที่พบ / Summary of Issue:
+            </div>
+            {remarks.map((item) => (
+              <div key={item.key} style={styles.problemItem}>
+                <span style={styles.problemBullet}>•</span>
+                <span>
+                  <strong>หัวข้อ {item.no}</strong> : {item.label} พบปัญหา :{" "}
+                  {item.remark}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={styles.signatureSectionWrap}>
+        {renderSignatureSection(signatures, sigDateStr)}
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -284,28 +359,7 @@ function renderForm1(formData, signatures, sigDateStr) {
         </table>
       </div>
 
-      <div style={{ ...styles.remarkBox, ...styles.pageBlock }}>
-        <div style={styles.remarkTitle}>
-          GENERAL REMARKS (ความคิดเห็น / ข้อเสนอแนะเพิ่มเติม)
-        </div>
-        <div style={styles.generalRemarkText}>{fmt(formData.generalRemark)}</div>
-        {remarks.length > 0 && (
-          <div style={styles.problemListWrap}>
-            <div style={styles.problemListTitle}>สรุปปัญหาที่พบ / Summary of Issue:</div>
-            {remarks.map((item) => (
-              <div key={item.key} style={styles.problemItem}>
-                <span style={styles.problemBullet}>•</span>
-                <span>
-                  <strong>หัวข้อ {item.no}</strong> : {item.label} พบปัญหา :{" "}
-                  {item.remark}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div style={styles.pageBlock}>{renderSignatureSection(signatures, sigDateStr)}</div>
+      {closingSection}
     </>
   );
 }
@@ -428,7 +482,9 @@ const ReportPrintTemplate = forwardRef(
 
     return (
       <div ref={ref} style={styles.page}>
-        {renderHeader(sigDateStr, formData.codeNo)}
+        {isForm2
+          ? renderDefaultHeader(sigDateStr, formData.codeNo)
+          : renderForm1Header(sigDateStr, formData.codeNo)}
         {isForm2
           ? renderForm2(formData, signatures, sigDateStr)
           : renderForm1(formData, signatures, sigDateStr)}
@@ -443,7 +499,11 @@ ReportPrintTemplate.displayName = "ReportPrintTemplate";
 
 export default ReportPrintTemplate;
 
-const borderColor = "#5d6674";
+const borderColor = "#5e6066";
+const reportBlue = "#242a8f";
+const softBlueFill = "#eceef9";
+const paleBlueFill = "#f4f5fb";
+const highlightYellow = "#fff3b8";
 
 const styles = {
   page: {
@@ -481,6 +541,63 @@ const styles = {
     fontSize: "7px",
     color: "#4b5563",
   },
+  form1TopBrandRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: "18px",
+    minHeight: "74px",
+  },
+  form1Logo: {
+    width: "150px",
+    height: "64px",
+    objectFit: "contain",
+  },
+  form1QrWrap: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "4px",
+  },
+  form1QrCode: {
+    width: "58px",
+    height: "58px",
+    objectFit: "contain",
+  },
+  form1QrCaption: {
+    fontSize: "6px",
+    color: "#6b7280",
+  },
+  form1TitleTable: {
+    width: "100%",
+    borderCollapse: "collapse",
+    marginBottom: "10px",
+  },
+  form1TitleCell: {
+    border: `1px solid ${borderColor}`,
+    textAlign: "center",
+    fontSize: "15px",
+    letterSpacing: "1.8px",
+    color: reportBlue,
+    background: softBlueFill,
+    fontWeight: 700,
+    padding: "5px 0",
+  },
+  form1MetaLabelCell: {
+    border: `1px solid ${borderColor}`,
+    padding: "2px 6px",
+    fontSize: "8px",
+    color: "#6b7280",
+    background: "#ffffff",
+    width: "12%",
+  },
+  form1MetaValueCell: {
+    border: `1px solid ${borderColor}`,
+    padding: "2px 8px",
+    fontSize: "9px",
+    background: "#ffffff",
+    width: "38%",
+  },
   titleTable: {
     width: "100%",
     borderCollapse: "collapse",
@@ -510,7 +627,8 @@ const styles = {
   sectionHeader: {
     border: `1px solid ${borderColor}`,
     borderBottom: "none",
-    color: "#a3aab5",
+    color: "#ffffff",
+    background: reportBlue,
     fontSize: "10px",
     fontWeight: 700,
     padding: "4px 6px",
@@ -536,6 +654,7 @@ const styles = {
     padding: "3px 5px",
     verticalAlign: "top",
     fontWeight: 700,
+    background: softBlueFill,
   },
   labelCellSingle: {
     width: "25%",
@@ -543,6 +662,7 @@ const styles = {
     padding: "3px 5px",
     verticalAlign: "top",
     fontWeight: 700,
+    background: softBlueFill,
   },
   labelCellSingleTop: {
     width: "20%",
@@ -550,6 +670,7 @@ const styles = {
     padding: "4px 5px",
     verticalAlign: "top",
     fontWeight: 700,
+    background: softBlueFill,
   },
   valueCell: {
     width: "30%",
@@ -566,9 +687,10 @@ const styles = {
   inlineRemarkLabel: {
     fontSize: "10px",
     fontWeight: 700,
-    color: "#4b5563",
-    borderLeft: "4px solid #f59e0b",
-    paddingLeft: "6px",
+    color: "#6b5b00",
+    background: highlightYellow,
+    borderLeft: "4px solid #f1b500",
+    padding: "4px 8px",
     margin: "2px 0 8px",
   },
   checklistTable: {
@@ -578,7 +700,8 @@ const styles = {
   },
   checkHeadCell: {
     border: `1px solid ${borderColor}`,
-    color: "#9ca3af",
+    color: "#ffffff",
+    background: reportBlue,
     fontWeight: 700,
     textAlign: "center",
     fontSize: "10px",
@@ -586,14 +709,14 @@ const styles = {
   },
   sectionBandCell: {
     border: `1px solid ${borderColor}`,
-    background: "#f7f8fc",
-    color: "#1b2f8b",
+    background: paleBlueFill,
+    color: reportBlue,
     fontWeight: 700,
     padding: "5px 6px",
   },
   checkNoCell: {
     border: `1px solid ${borderColor}`,
-    color: "#1b2f8b",
+    color: reportBlue,
     fontWeight: 700,
     textAlign: "center",
     padding: "4px",
@@ -619,13 +742,14 @@ const styles = {
     verticalAlign: "top",
   },
   remarkBox: {
-    border: "1px solid #4f63c5",
+    border: "1px solid #f0d66d",
     borderRadius: "4px",
     padding: "8px 10px",
     marginBottom: "8px",
+    background: highlightYellow,
   },
   remarkTitle: {
-    color: "#1b2f8b",
+    color: "#6b5b00",
     fontWeight: 700,
     marginBottom: "6px",
   },
@@ -739,5 +863,13 @@ const styles = {
   pageBlock: {
     breakInside: "avoid",
     pageBreakInside: "avoid",
+  },
+  pageBreakBefore: {
+    pageBreakBefore: "always",
+    breakBefore: "page",
+    paddingTop: "6px",
+  },
+  signatureSectionWrap: {
+    marginTop: "8px",
   },
 };
