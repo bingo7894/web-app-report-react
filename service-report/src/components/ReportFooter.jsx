@@ -205,6 +205,7 @@ export default function ReportFooter({
   variant = "form1",
   authToken = "",
   onUnauthorized,
+  onResetForm,
   validationErrors = {},
   setValidationErrors,
 }) {
@@ -578,6 +579,7 @@ export default function ReportFooter({
         <ManageReportDialog
           isOpen={isDialogOpen}
           onClose={() => setIsDialogOpen(false)}
+          onResetForm={onResetForm}
           formData={{
             ...formData,
             generalRemark: remark,
@@ -691,6 +693,7 @@ export default function ReportFooter({
       <ManageReportDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
+        onResetForm={onResetForm}
         formData={{
           ...formData,
           generalRemark: remark,

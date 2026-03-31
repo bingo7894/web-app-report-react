@@ -34,9 +34,25 @@ const initialFormData = {
   endTime: "",
 };
 
+function createInitialFormData() {
+  return { ...initialFormData };
+}
+
 export default function ReportPage({ authState, onLogout }) {
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState(createInitialFormData);
   const [validationErrors, setValidationErrors] = useState({});
+
+  const applyDefaultDates = (data) => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const defaultDateTime = now.toISOString().slice(0, 16);
+
+    return {
+      ...data,
+      reportDate: data.reportDate || defaultDateTime,
+      endTime: data.endTime || defaultDateTime,
+    };
+  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -69,15 +85,13 @@ export default function ReportPage({ authState, onLogout }) {
   };
 
   useEffect(() => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const defaultDateTime = now.toISOString().slice(0, 16);
-    setFormData((prev) => ({
-      ...prev,
-      reportDate: prev.reportDate || defaultDateTime,
-      endTime: prev.endTime || defaultDateTime,
-    }));
+    setFormData((prev) => applyDefaultDates(prev));
   }, []);
+
+  const handleResetForm = () => {
+    setFormData(applyDefaultDates(createInitialFormData()));
+    setValidationErrors({});
+  };
 
   return (
     <div className="mx-auto min-h-screen max-w-[860px] bg-slate-50 p-4 font-sarabun text-slate-900">
@@ -169,6 +183,7 @@ export default function ReportPage({ authState, onLogout }) {
                 handleChange={handleChange}
                 authToken={authState.token}
                 onUnauthorized={onLogout}
+                onResetForm={handleResetForm}
                 validationErrors={validationErrors}
                 setValidationErrors={setValidationErrors}
               />
@@ -188,6 +203,7 @@ export default function ReportPage({ authState, onLogout }) {
               variant="form2"
               authToken={authState.token}
               onUnauthorized={onLogout}
+              onResetForm={handleResetForm}
               validationErrors={validationErrors}
               setValidationErrors={setValidationErrors}
             />
