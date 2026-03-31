@@ -67,6 +67,17 @@ export default function ManageReportDialog({
     }
   }, [isOpen, formData, signatures]);
 
+  // ล็อคการเลื่อนของหน้าพื้นหลังเมื่อเปิด Modal (แก้ปัญหาเลื่อนฉากหลังบน iPhone)
+  useEffect(() => {
+    if (isOpen) {
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalStyle;
+      };
+    }
+  }, [isOpen]);
+
   const onPrintClick = async () => {
     if (!printRef.current) {
       alert("รูปแบบการพิมพ์ยังไม่พร้อม กรุณารอสักครู่");
@@ -357,10 +368,16 @@ export default function ManageReportDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2 sm:p-4"
-      style={{ minHeight: "100vh" }}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
+      style={{ height: "100dvh" }} // ใช้ dvh เพื่อรองรับ Safe Area บน iPhone
     >
-      <div className="max-h-[96vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl transition-all sm:max-h-[90vh]">
+      <div 
+        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl transition-all sm:max-h-[90vh]"
+        style={{
+          WebkitOverflowScrolling: "touch", // เปิด Momentum Scrolling บน iOS
+          overscrollBehavior: "contain"    // ป้องกัน Scroll ข้ามไปฉากหลัง
+        }}
+      >
         {/* ส่วนหัว - Icon และ Title */}
         <div className="relative flex-shrink-0 border-b border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 px-5 py-6 text-center sm:px-8 sm:py-8">
           <button
