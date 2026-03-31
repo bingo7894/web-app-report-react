@@ -26,10 +26,12 @@ const SignaturePad = forwardRef(
     { label, date, onDateChange, variant = "form1", scrollId, errorMessage },
     ref,
   ) => {
+    const containerRef = useRef(null);
     const canvasRef = useRef(null);
-    const [isDrawing, setIsDrawing] = useState(false);
+    const isDrawingRef = useRef(false);
     const hasDrawnRef = useRef(false);
     const signatureDataUrlRef = useRef(null);
+    const resizeFrameRef = useRef(null);
 
     const restoreSignature = (dataUrl) => {
       const canvas = canvasRef.current;
@@ -77,16 +79,29 @@ const SignaturePad = forwardRef(
 
     useEffect(() => {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      const container = containerRef.current;
+      if (!canvas || !container) return undefined;
 
       const resizeCanvas = () => {
+        const rect = container.getBoundingClientRect();
+        const nextWidth = Math.round(rect.width);
+        const nextHeight = 160;
+
+        if (nextWidth <= 0) {
+          return;
+        }
+
+        if (canvas.width === nextWidth && canvas.height === nextHeight) {
+          return;
+        }
+
         const previousSignature =
           hasDrawnRef.current && canvas.width > 0 && canvas.height > 0
             ? canvas.toDataURL("image/png")
             : signatureDataUrlRef.current;
-        const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = 160;
+
+        canvas.width = nextWidth;
+        canvas.height = nextHeight;
 
         const ctx = canvas.getContext("2d");
         ctx.strokeStyle = "#0f172a";
@@ -95,30 +110,68 @@ const SignaturePad = forwardRef(
         ctx.lineJoin = "round";
 
         if (previousSignature) {
+          signatureDataUrlRef.current = previousSignature;
           restoreSignature(previousSignature);
         }
       };
 
-      resizeCanvas();
-      window.addEventListener("resize", resizeCanvas);
-      window.visualViewport?.addEventListener("resize", resizeCanvas);
+      const requestResize = () => {
+        if (resizeFrameRef.current) {
+          window.cancelAnimationFrame(resizeFrameRef.current);
+        }
+
+        resizeFrameRef.current = window.requestAnimationFrame(() => {
+          resizeCanvas();
+          resizeFrameRef.current = null;
+        });
+      };
+
+      requestResize();
+
+      const resizeObserver = new ResizeObserver(requestResize);
+      resizeObserver.observe(container);
+
+      window.addEventListener("orientationchange", requestResize);
+      window.visualViewport?.addEventListener("resize", requestResize);
+
       return () => {
-        window.removeEventListener("resize", resizeCanvas);
-        window.visualViewport?.removeEventListener("resize", resizeCanvas);
+        if (resizeFrameRef.current) {
+          window.cancelAnimationFrame(resizeFrameRef.current);
+        }
+        resizeObserver.disconnect();
+        window.removeEventListener("orientationchange", requestResize);
+        window.visualViewport?.removeEventListener("resize", requestResize);
       };
     }, []);
+
+    const getPoint = (event) => {
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+    };
 
     const startDrawing = (event) => {
       if (event.cancelable) {
         event.preventDefault();
       }
+      canvasRef.current?.setPointerCapture?.(event.pointerId);
       hasDrawnRef.current = true;
-      setIsDrawing(true);
-      draw(event);
+      isDrawingRef.current = true;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+      const point = getPoint(event);
+      ctx.beginPath();
+      ctx.moveTo(point.x, point.y);
     };
 
-    const stopDrawing = () => {
-      setIsDrawing(false);
+    const stopDrawing = (event) => {
+      isDrawingRef.current = false;
+      canvasRef.current?.releasePointerCapture?.(event.pointerId);
       const canvas = canvasRef.current;
       if (!canvas) return;
       canvas.getContext("2d").beginPath();
@@ -126,7 +179,7 @@ const SignaturePad = forwardRef(
     };
 
     const draw = (event) => {
-      if (!isDrawing) return;
+      if (!isDrawingRef.current) return;
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -135,32 +188,29 @@ const SignaturePad = forwardRef(
       }
 
       const ctx = canvas.getContext("2d");
-      const rect = canvas.getBoundingClientRect();
-      const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-      const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-      const x = clientX - rect.left;
-      const y = clientY - rect.top;
+      const point = getPoint(event);
 
-      ctx.lineTo(x, y);
+      ctx.lineTo(point.x, point.y);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(x, y);
+      ctx.moveTo(point.x, point.y);
     };
 
 
     if (variant === "form2") {
       return (
         <div className="text-center" data-scroll-id={scrollId}>
-          <div className="overflow-hidden rounded-xl bg-white">
+          <div
+            ref={containerRef}
+            className="overflow-hidden rounded-xl bg-white"
+          >
             <canvas
               ref={canvasRef}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
-              onTouchStart={startDrawing}
-              onTouchMove={draw}
-              onTouchEnd={stopDrawing}
+              onPointerDown={startDrawing}
+              onPointerMove={draw}
+              onPointerUp={stopDrawing}
+              onPointerLeave={stopDrawing}
+              onPointerCancel={stopDrawing}
               className="h-40 w-full touch-none bg-white"
             />
           </div>
@@ -174,17 +224,16 @@ const SignaturePad = forwardRef(
         className="signature-box"
         style={styles.signatureBox}
         data-scroll-id={scrollId}
+        ref={containerRef}
       >
         <label style={styles.sigLabel}>{label}</label>
         <canvas
           ref={canvasRef}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
+          onPointerDown={startDrawing}
+          onPointerMove={draw}
+          onPointerUp={stopDrawing}
+          onPointerLeave={stopDrawing}
+          onPointerCancel={stopDrawing}
           style={styles.canvas}
         />
         <div className="sig-controls" style={styles.sigControls}>
