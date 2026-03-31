@@ -272,13 +272,13 @@ function renderForm1(formData, signatures, sigDateStr) {
               สรุปปัญหาที่พบ / Summary of Issue:
             </div>
             {remarks.map((item) => {
-              const remarkText = `หัวข้อ ${item.no} : ${item.label} พบปัญหา : ${item.remark}`;
+              const remarkText = `หัวข้อ ${item.no} : ${item.label} พบว่า : ${item.remark}`;
               const isSection1_4 = remarkText.includes("หัวข้อ 1.4");
               return (
                 <div key={item.key} style={{ ...styles.problemItem, color: isSection1_4 ? "red" : "inherit" }}>
                   <span style={styles.problemBullet}>•</span>
                   <span>
-                    <strong>หัวข้อ {item.no}</strong> : {item.label} พบปัญหา :{" "}
+                    <strong>หัวข้อ {item.no}</strong> : {item.label} พบว่า :{" "}
                     {item.remark}
                   </span>
                 </div>
