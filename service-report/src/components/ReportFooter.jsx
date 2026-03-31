@@ -25,9 +25,6 @@ const SignaturePad = forwardRef(
   (
     {
       label,
-      date,
-      onDateChange,
-      variant = "form1",
       scrollId,
       errorMessage,
       initialSignatureData = null,
@@ -41,7 +38,6 @@ const SignaturePad = forwardRef(
     const hasDrawnRef = useRef(false);
     const signatureDataUrlRef = useRef(null);
     const resizeFrameRef = useRef(null);
-    const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
     const restoreSignature = (dataUrl) => {
       const canvas = canvasRef.current;
@@ -233,84 +229,26 @@ const SignaturePad = forwardRef(
     };
 
 
-    if (variant === "form2") {
-      return (
-        <div className="text-center" data-scroll-id={scrollId}>
-          <div
-            ref={containerRef}
-            className="overflow-hidden rounded-xl bg-white"
-          >
-            <canvas
-              ref={canvasRef}
-              onPointerDown={startDrawing}
-              onPointerMove={draw}
-              onPointerUp={stopDrawing}
-              onPointerLeave={stopDrawing}
-              onPointerCancel={stopDrawing}
-              className="h-40 w-full touch-none bg-white"
-            />
-          </div>
-          <p className="mt-3 text-[15px] text-slate-500">{label}</p>
-        </div>
-      );
-    }
-
     return (
-      <div
-        className="signature-box"
-        style={styles.signatureBox}
-        data-scroll-id={scrollId}
-        ref={containerRef}
-      >
-        <label style={styles.sigLabel}>{label}</label>
-        <canvas
-          ref={canvasRef}
-          onPointerDown={startDrawing}
-          onPointerMove={draw}
-          onPointerUp={stopDrawing}
-          onPointerLeave={stopDrawing}
-          onPointerCancel={stopDrawing}
-          style={styles.canvas}
-        />
-        <div className="sig-controls" style={styles.sigControls}>
-          <input
-            type="date"
-            name={
-              scrollId === "signature-inspector"
-                ? "signature-date-inspector"
-                : "signature-date-owner"
-            }
-            value={date}
-            onChange={(e) => onDateChange(e.target.value)}
-            onClick={openNativePicker}
-            onFocus={openNativePicker}
-            style={{
-              ...styles.dateInput,
-              ...(errorMessage ? styles.dateInputError : null),
-            }}
+      <div className="text-center" data-scroll-id={scrollId}>
+        <div
+          ref={containerRef}
+          className="overflow-hidden rounded-xl bg-white"
+        >
+          <canvas
+            ref={canvasRef}
+            onPointerDown={startDrawing}
+            onPointerMove={draw}
+            onPointerUp={stopDrawing}
+            onPointerLeave={stopDrawing}
+            onPointerCancel={stopDrawing}
+            className="h-40 w-full touch-none bg-white"
           />
-          {errorMessage ? (
-            <p style={styles.dateErrorText}>{errorMessage}</p>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setIsClearConfirmOpen(true)}
-            style={styles.btnClear}
-          >
-            <i className="fas fa-eraser"></i> ลบลายเซ็น
-          </button>
         </div>
-        {isClearConfirmOpen ? (
-          <ConfirmActionDialog
-            title="ยืนยันการล้างลายเซ็น"
-            message="ต้องการล้างลายเซ็นนี้ใช่หรือไม่"
-            onCancel={() => setIsClearConfirmOpen(false)}
-            onConfirm={() => {
-              clearSignature();
-              setIsClearConfirmOpen(false);
-            }}
-          />
-        ) : null}
+        <p className="mt-3 text-[15px] font-semibold text-slate-700">{label}</p>
+        {errorMessage && (
+          <p className="mt-1 text-xs font-medium text-red-500">{errorMessage}</p>
+        )}
       </div>
     );
   },
@@ -412,7 +350,10 @@ export default function ReportFooter({
   const inspectorSigRef = useRef();
   const ownerSigRef = useRef();
 
-  useEffect(() => {
+  // Sync state from props during render (React Best Practice for adjusting state from props)
+  const [prevFooterDraft, setPrevFooterDraft] = useState(footerDraft);
+  if (footerDraft !== prevFooterDraft) {
+    setPrevFooterDraft(footerDraft);
     setRemark(footerDraft.generalRemark || "");
     setInspectorDate(footerDraft.inspectorDate || "");
     setOwnerDate(footerDraft.ownerDate || "");
@@ -420,25 +361,43 @@ export default function ReportFooter({
       inspector: footerDraft.signatures?.inspector || null,
       owner: footerDraft.signatures?.owner || null,
     });
-    syncSignatureDatesRef.current = footerDraft.syncSignatureDates !== false;
+  }
+
+  useEffect(() => {
+    if (footerDraft.syncSignatureDates !== undefined) {
+      syncSignatureDatesRef.current = footerDraft.syncSignatureDates !== false;
+    }
+  }, [footerDraft.syncSignatureDates]);
+
+  useEffect(() => {
+    const isDifferent =
+      remark !== (footerDraft.generalRemark || "") ||
+      inspectorDate !== (footerDraft.inspectorDate || "") ||
+      ownerDate !== (footerDraft.ownerDate || "") ||
+      signatures.inspector !== (footerDraft.signatures?.inspector || null) ||
+      signatures.owner !== (footerDraft.signatures?.owner || null);
+
+    if (isDifferent) {
+      setFooterDraft?.({
+        generalRemark: remark,
+        inspectorDate,
+        ownerDate,
+        signatures,
+        syncSignatureDates: syncSignatureDatesRef.current,
+      });
+    }
   }, [
+    remark,
+    inspectorDate,
+    ownerDate,
+    signatures,
     footerDraft.generalRemark,
     footerDraft.inspectorDate,
     footerDraft.ownerDate,
     footerDraft.signatures?.inspector,
     footerDraft.signatures?.owner,
-    footerDraft.syncSignatureDates,
+    setFooterDraft,
   ]);
-
-  useEffect(() => {
-    setFooterDraft?.({
-      generalRemark: remark,
-      inspectorDate,
-      ownerDate,
-      signatures,
-      syncSignatureDates: syncSignatureDatesRef.current,
-    });
-  }, [remark, inspectorDate, ownerDate, signatures, setFooterDraft]);
 
   useEffect(() => {
     const reportDateValue = String(formData.reportDate || "");
@@ -495,8 +454,6 @@ export default function ReportFooter({
       errors[field] = message;
     }
   };
-
-  const getRemarkPrefix = (item) => `หัวข้อ ${item.no} ${item.label} พบปัญหา :`;
 
   const isRemarkIncomplete = (item) => {
     const value = String(formData[`remark_${item.name}`] || "").trim();
@@ -605,19 +562,11 @@ export default function ReportFooter({
       }
 
 
-      if (inspectorSigRef.current?.isEmpty()) {
-        setFieldError(
-          errors,
-          "signature-inspector",
-          "กรุณาลงลายเซ็นผู้ตรวจสอบอาคาร",
-        );
-      }
-
       if (!String(inspectorDate || "").trim()) {
         setFieldError(
           errors,
-          "signature-date-inspector",
-          "กรุณาระบุวันที่ของผู้ตรวจสอบอาคาร",
+          "signature-inspector",
+          "กรุณาระบุข้อมูลผู้ตรวจสอบอาคารให้ครบถ้วน",
         );
       }
 
@@ -632,8 +581,8 @@ export default function ReportFooter({
       if (!String(ownerDate || "").trim()) {
         setFieldError(
           errors,
-          "signature-date-owner",
-          "กรุณาระบุวันที่ของเจ้าของอาคาร / ผู้ดูแลอาคาร",
+          "signature-owner",
+          "กรุณาระบุข้อมูลเจ้าของอาคาร / ผู้ดูแลอาคารให้ครบถ้วน",
         );
       }
     } else {
@@ -923,39 +872,88 @@ export default function ReportFooter({
           <h3 className="text-[18px] font-bold">ลายเซ็น (Signatures)</h3>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <SignaturePad
-            ref={inspectorSigRef}
-            label="ผู้ตรวจสอบอาคาร (Inspector)"
-            date={inspectorDate}
-            onDateChange={(value) => {
-              syncSignatureDatesRef.current = false;
-              setInspectorDate(value);
-              clearValidationError("signature-date-inspector");
-            }}
-            scrollId="signature-inspector"
-            errorMessage={validationErrors["signature-date-inspector"]}
-            initialSignatureData={signatures.inspector}
-            onSignatureChange={(value) =>
-              setSignatures((prev) => ({ ...prev, inspector: value }))
-            }
-          />
-          <SignaturePad
-            ref={ownerSigRef}
-            label="เจ้าของอาคาร / ผู้ดูแลอาคาร"
-            date={ownerDate}
-            onDateChange={(value) => {
-              syncSignatureDatesRef.current = false;
-              setOwnerDate(value);
-              clearValidationError("signature-date-owner");
-            }}
-            scrollId="signature-owner"
-            errorMessage={validationErrors["signature-date-owner"]}
-            initialSignatureData={signatures.owner}
-            onSignatureChange={(value) =>
-              setSignatures((prev) => ({ ...prev, owner: value }))
-            }
-          />
+        <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2">
+          <div className="text-center">
+            <div className="overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50">
+              <div className="p-4">
+                <SignaturePad
+                  ref={inspectorSigRef}
+                  label="ผู้ตรวจสอบอาคาร (Inspector)"
+                  scrollId="signature-inspector"
+                  errorMessage={validationErrors["signature-inspector"]}
+                  initialSignatureData={signatures.inspector}
+                  onSignatureChange={(value) =>
+                    setSignatures((prev) => ({ ...prev, inspector: value }))
+                  }
+                />
+                <div className="mt-4 border-t border-slate-200 pt-4">
+                  <label className="mb-1 block text-[11px] font-bold uppercase text-slate-400">
+                    วันที่ตรวจสอบ (Inspection Date)
+                  </label>
+                  <input
+                    type="date"
+                    value={inspectorDate}
+                    onChange={(e) => {
+                      syncSignatureDatesRef.current = false;
+                      setInspectorDate(e.target.value);
+                      clearValidationError("signature-inspector");
+                    }}
+                    onClick={openNativePicker}
+                    onFocus={openNativePicker}
+                    className="w-full max-w-[180px] rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSignatureClearTarget("inspector")}
+              className={`${signatureActionButtonClass} mt-3`}
+            >
+              <i className="fas fa-eraser"></i> ลบลายเซ็น
+            </button>
+          </div>
+
+          <div className="text-center">
+            <div className="overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50">
+              <div className="p-4">
+                <SignaturePad
+                  ref={ownerSigRef}
+                  label="เจ้าของอาคาร / ผู้ดูแลอาคาร"
+                  scrollId="signature-owner"
+                  errorMessage={validationErrors["signature-owner"]}
+                  initialSignatureData={signatures.owner}
+                  onSignatureChange={(value) =>
+                    setSignatures((prev) => ({ ...prev, owner: value }))
+                  }
+                />
+                <div className="mt-4 border-t border-slate-200 pt-4">
+                  <label className="mb-1 block text-[11px] font-bold uppercase text-slate-400">
+                    วันที่รับทราบ (Acknowledgement Date)
+                  </label>
+                  <input
+                    type="date"
+                    value={ownerDate}
+                    onChange={(e) => {
+                      syncSignatureDatesRef.current = false;
+                      setOwnerDate(e.target.value);
+                      clearValidationError("signature-owner");
+                    }}
+                    onClick={openNativePicker}
+                    onFocus={openNativePicker}
+                    className="w-full max-w-[180px] rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-center text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSignatureClearTarget("owner")}
+              className={`${signatureActionButtonClass} mt-3`}
+            >
+              <i className="fas fa-eraser"></i> ลบลายเซ็น
+            </button>
+          </div>
         </div>
       </div>
 
@@ -999,61 +997,3 @@ export default function ReportFooter({
     </div>
   );
 }
-
-const styles = {
-  signatureBox: {
-    border: "1px solid #cbd5e1",
-    padding: "16px",
-    borderRadius: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    textAlign: "center",
-  },
-  sigLabel: {
-    fontWeight: "bold",
-    color: "#0f172a",
-    textAlign: "center",
-    fontSize: "15px",
-  },
-  canvas: {
-    background: "#fff",
-    border: "2px dashed #cbd5e1",
-    borderRadius: "14px",
-    width: "100%",
-    cursor: "crosshair",
-    touchAction: "none",
-  },
-  sigControls: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "10px",
-  },
-  dateInput: {
-    width: "180px",
-    padding: "8px",
-    borderRadius: "6px",
-    border: "1px solid #cbd5e1",
-    textAlign: "center",
-    cursor: "pointer",
-  },
-  dateInputError: {
-    border: "1px solid #f87171",
-    boxShadow: "0 0 0 3px rgba(254, 226, 226, 0.9)",
-  },
-  dateErrorText: {
-    margin: "2px 0 0",
-    color: "#dc2626",
-    fontSize: "12px",
-    fontWeight: 500,
-  },
-  btnClear: {
-    background: "#64748b",
-    color: "#fff",
-    border: "none",
-    padding: "8px 12px",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-};
