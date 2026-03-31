@@ -3,7 +3,10 @@ import BuildingChecklistForm from "../components/BuildingChecklistForm";
 import GeneralServiceForm from "../components/GeneralServiceForm";
 import BuildingInspectionGeneralInfo from "../components/BuildingInspectionGeneralInfo";
 import ReportFooter from "../components/ReportFooter";
-import { sanitizePhoneInput } from "../utils/inputValidation";
+import {
+  getFieldValidationMessage,
+  sanitizePhoneInput,
+} from "../utils/inputValidation";
 
 const initialFormData = {
   formType: "form1",
@@ -33,11 +36,36 @@ const initialFormData = {
 
 export default function ReportPage({ authState, onLogout }) {
   const [formData, setFormData] = useState(initialFormData);
+  const [validationErrors, setValidationErrors] = useState({});
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     const nextValue = name === "phone" ? sanitizePhoneInput(value) : value;
     setFormData((prev) => ({ ...prev, [name]: nextValue }));
+    setValidationErrors((prev) => {
+      if (!prev[name]) return prev;
+
+      const nextErrors = { ...prev };
+      delete nextErrors[name];
+      return nextErrors;
+    });
+  };
+
+  const handleBlur = (event) => {
+    const { name, value } = event.target;
+    const nextValue = name === "phone" ? sanitizePhoneInput(value) : value;
+    const nextFormData = { ...formData, [name]: nextValue };
+    const message = getFieldValidationMessage(name, nextFormData, formData.formType);
+
+    setValidationErrors((prev) => {
+      const nextErrors = { ...prev };
+      if (message) {
+        nextErrors[name] = message;
+      } else {
+        delete nextErrors[name];
+      }
+      return nextErrors;
+    });
   };
 
   useEffect(() => {
@@ -108,10 +136,14 @@ export default function ReportPage({ authState, onLogout }) {
             <BuildingInspectionGeneralInfo
               formData={formData}
               handleChange={handleChange}
+              handleBlur={handleBlur}
+              validationErrors={validationErrors}
             />
             <BuildingChecklistForm
               formData={formData}
               handleChange={handleChange}
+              handleBlur={handleBlur}
+              validationErrors={validationErrors}
             />
             <div className="mt-6">
               <ReportFooter
@@ -119,6 +151,8 @@ export default function ReportPage({ authState, onLogout }) {
                 handleChange={handleChange}
                 authToken={authState.token}
                 onUnauthorized={onLogout}
+                validationErrors={validationErrors}
+                setValidationErrors={setValidationErrors}
               />
             </div>
           </>
@@ -127,6 +161,8 @@ export default function ReportPage({ authState, onLogout }) {
             <GeneralServiceForm
               formData={formData}
               handleChange={handleChange}
+              handleBlur={handleBlur}
+              validationErrors={validationErrors}
             />
             <ReportFooter
               formData={formData}
@@ -134,6 +170,8 @@ export default function ReportPage({ authState, onLogout }) {
               variant="form2"
               authToken={authState.token}
               onUnauthorized={onLogout}
+              validationErrors={validationErrors}
+              setValidationErrors={setValidationErrors}
             />
           </div>
         )}

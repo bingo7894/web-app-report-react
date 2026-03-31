@@ -20,7 +20,16 @@ const inputClassName =
 export default function BuildingInspectionGeneralInfo({
   formData,
   handleChange,
+  handleBlur,
+  validationErrors = {},
 }) {
+  const getInputClassName = (fieldName) =>
+    `${inputClassName} ${
+      validationErrors[fieldName]
+        ? "border-red-400 focus:border-red-500 focus:ring-red-100"
+        : ""
+    }`;
+
   return (
     <div className="mb-6 rounded-2xl border border-slate-300 bg-white px-5 py-6 shadow-sm md:px-6">
       <div className="mb-5 flex items-center gap-2 border-b border-slate-200 pb-4 text-primary">
@@ -38,10 +47,16 @@ export default function BuildingInspectionGeneralInfo({
             name="reportDate"
             value={formData.reportDate}
             onChange={handleChange}
+            onBlur={handleBlur}
             onClick={openNativePicker}
             onFocus={openNativePicker}
-            className={`${inputClassName} cursor-pointer`}
+            className={`${getInputClassName("reportDate")} cursor-pointer`}
           />
+          {validationErrors.reportDate && (
+            <p className="mt-2 text-sm text-red-600">
+              {validationErrors.reportDate}
+            </p>
+          )}
         </div>
 
         <div className="md:col-span-2">
@@ -53,8 +68,14 @@ export default function BuildingInspectionGeneralInfo({
             name="projectName"
             value={formData.projectName}
             onChange={handleChange}
-            className={inputClassName}
+            onBlur={handleBlur}
+            className={getInputClassName("projectName")}
           />
+          {validationErrors.projectName && (
+            <p className="mt-2 text-sm text-red-600">
+              {validationErrors.projectName}
+            </p>
+          )}
         </div>
 
         <div className="md:col-span-2">
@@ -66,8 +87,14 @@ export default function BuildingInspectionGeneralInfo({
             name="address"
             value={formData.address}
             onChange={handleChange}
-            className={inputClassName}
+            onBlur={handleBlur}
+            className={getInputClassName("address")}
           />
+          {validationErrors.address && (
+            <p className="mt-2 text-sm text-red-600">
+              {validationErrors.address}
+            </p>
+          )}
         </div>
 
         <div>
@@ -79,8 +106,14 @@ export default function BuildingInspectionGeneralInfo({
             name="contactName"
             value={formData.contactName}
             onChange={handleChange}
-            className={inputClassName}
+            onBlur={handleBlur}
+            className={getInputClassName("contactName")}
           />
+          {validationErrors.contactName && (
+            <p className="mt-2 text-sm text-red-600">
+              {validationErrors.contactName}
+            </p>
+          )}
         </div>
 
         <div>
@@ -92,11 +125,17 @@ export default function BuildingInspectionGeneralInfo({
             name="phone"
             value={formData.phone}
             onChange={handleChange}
+            onBlur={handleBlur}
             inputMode="numeric"
             maxLength={10}
             placeholder="กรอกเบอร์โทร 10 หลัก"
-            className={inputClassName}
+            className={getInputClassName("phone")}
           />
+          {validationErrors.phone && (
+            <p className="mt-2 text-sm text-red-600">
+              {validationErrors.phone}
+            </p>
+          )}
         </div>
 
         <div>
@@ -108,10 +147,16 @@ export default function BuildingInspectionGeneralInfo({
             name="email"
             value={formData.email}
             onChange={handleChange}
+            onBlur={handleBlur}
             autoComplete="email"
             placeholder="name@example.com"
-            className={inputClassName}
+            className={getInputClassName("email")}
           />
+          {validationErrors.email && (
+            <p className="mt-2 text-sm text-red-600">
+              {validationErrors.email}
+            </p>
+          )}
         </div>
 
         <div>
@@ -123,8 +168,14 @@ export default function BuildingInspectionGeneralInfo({
             name="lineId"
             value={formData.lineId}
             onChange={handleChange}
-            className={inputClassName}
+            onBlur={handleBlur}
+            className={getInputClassName("lineId")}
           />
+          {validationErrors.lineId && (
+            <p className="mt-2 text-sm text-red-600">
+              {validationErrors.lineId}
+            </p>
+          )}
         </div>
 
         <div className="mt-2 md:col-span-2">
@@ -150,6 +201,11 @@ export default function BuildingInspectionGeneralInfo({
               </label>
             ))}
           </div>
+          {validationErrors.inspectionType && (
+            <p className="mt-2 text-sm text-red-600">
+              {validationErrors.inspectionType}
+            </p>
+          )}
         </div>
       </div>
     </div>

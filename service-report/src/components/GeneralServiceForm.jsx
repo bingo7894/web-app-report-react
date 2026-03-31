@@ -155,7 +155,19 @@ function DrawingPad({ value, onChange }) {
   );
 }
 
-export default function GeneralServiceForm({ formData, handleChange }) {
+export default function GeneralServiceForm({
+  formData,
+  handleChange,
+  handleBlur,
+  validationErrors = {},
+}) {
+  const getInputClassName = (fieldName) =>
+    `${inputClassName} ${
+      validationErrors[fieldName]
+        ? "border-red-400 focus:border-red-500 focus:ring-red-100"
+        : ""
+    }`;
+
   const updateField = (name, value) => {
     handleChange({
       target: {
@@ -211,10 +223,16 @@ export default function GeneralServiceForm({ formData, handleChange }) {
               name="reportDate"
               value={formData.reportDate}
               onChange={handleChange}
+              onBlur={handleBlur}
               onClick={openNativePicker}
               onFocus={openNativePicker}
-              className={`${inputClassName} cursor-pointer`}
+              className={`${getInputClassName("reportDate")} cursor-pointer`}
             />
+            {validationErrors.reportDate && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.reportDate}
+              </p>
+            )}
           </Field>
 
           <Field label="CODE NO." englishLabel="" required={false}>
@@ -223,8 +241,14 @@ export default function GeneralServiceForm({ formData, handleChange }) {
               name="codeNo"
               value={formData.codeNo}
               onChange={handleChange}
-              className={inputClassName}
+              onBlur={handleBlur}
+              className={getInputClassName("codeNo")}
             />
+            {validationErrors.codeNo && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.codeNo}
+              </p>
+            )}
           </Field>
 
           <div className="md:col-span-2">
@@ -234,8 +258,14 @@ export default function GeneralServiceForm({ formData, handleChange }) {
                 name="projectName"
                 value={formData.projectName}
                 onChange={handleChange}
-                className={inputClassName}
+                onBlur={handleBlur}
+                className={getInputClassName("projectName")}
               />
+              {validationErrors.projectName && (
+                <p className="mt-2 text-sm text-red-600">
+                  {validationErrors.projectName}
+                </p>
+              )}
             </Field>
           </div>
 
@@ -246,8 +276,14 @@ export default function GeneralServiceForm({ formData, handleChange }) {
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                className={inputClassName}
+                onBlur={handleBlur}
+                className={getInputClassName("address")}
               />
+              {validationErrors.address && (
+                <p className="mt-2 text-sm text-red-600">
+                  {validationErrors.address}
+                </p>
+              )}
             </Field>
           </div>
 
@@ -257,8 +293,14 @@ export default function GeneralServiceForm({ formData, handleChange }) {
               name="contactName"
               value={formData.contactName}
               onChange={handleChange}
-              className={inputClassName}
+              onBlur={handleBlur}
+              className={getInputClassName("contactName")}
             />
+            {validationErrors.contactName && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.contactName}
+              </p>
+            )}
           </Field>
 
           <Field label="เบอร์โทร" englishLabel="Mobile" required>
@@ -267,11 +309,17 @@ export default function GeneralServiceForm({ formData, handleChange }) {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              onBlur={handleBlur}
               inputMode="numeric"
               maxLength={10}
               placeholder="กรอกเบอร์โทร 10 หลัก"
-              className={inputClassName}
+              className={getInputClassName("phone")}
             />
+            {validationErrors.phone && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.phone}
+              </p>
+            )}
           </Field>
 
           <div className="md:col-span-2">
@@ -281,9 +329,15 @@ export default function GeneralServiceForm({ formData, handleChange }) {
                 name="operatedBy"
                 value={formData.operatedBy}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="ชื่อวิศวกร / ช่างผู้ปฏิบัติงาน"
-                className={inputClassName}
+                className={getInputClassName("operatedBy")}
               />
+              {validationErrors.operatedBy && (
+                <p className="mt-2 text-sm text-red-600">
+                  {validationErrors.operatedBy}
+                </p>
+              )}
             </Field>
           </div>
 
@@ -293,10 +347,16 @@ export default function GeneralServiceForm({ formData, handleChange }) {
               name="email"
               value={formData.email}
               onChange={handleChange}
+              onBlur={handleBlur}
               autoComplete="email"
               placeholder="name@example.com"
-              className={inputClassName}
+              className={getInputClassName("email")}
             />
+            {validationErrors.email && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.email}
+              </p>
+            )}
           </Field>
 
           <Field label="ID Line" englishLabel="" required>
@@ -305,8 +365,14 @@ export default function GeneralServiceForm({ formData, handleChange }) {
               name="lineId"
               value={formData.lineId}
               onChange={handleChange}
-              className={inputClassName}
+              onBlur={handleBlur}
+              className={getInputClassName("lineId")}
             />
+            {validationErrors.lineId && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.lineId}
+              </p>
+            )}
           </Field>
 
           <div className="md:col-span-2">
@@ -315,7 +381,8 @@ export default function GeneralServiceForm({ formData, handleChange }) {
                 name="jobType2"
                 value={formData.jobType2}
                 onChange={handleJobTypeChange}
-                className={inputClassName}
+                onBlur={handleBlur}
+                className={getInputClassName("jobType2")}
               >
                 <option value="">-- เลือกประเภทงาน --</option>
                 {workTypeOptions.map((option) => (
@@ -327,6 +394,11 @@ export default function GeneralServiceForm({ formData, handleChange }) {
                   </option>
                 ))}
               </select>
+              {validationErrors.jobType2 && (
+                <p className="mt-2 text-sm text-red-600">
+                  {validationErrors.jobType2}
+                </p>
+              )}
             </Field>
           </div>
 
@@ -342,8 +414,14 @@ export default function GeneralServiceForm({ formData, handleChange }) {
                   name="jobTypeOther"
                   value={formData.jobTypeOther}
                   onChange={handleChange}
-                  className={inputClassName}
+                  onBlur={handleBlur}
+                  className={getInputClassName("jobTypeOther")}
                 />
+                {validationErrors.jobTypeOther && (
+                  <p className="mt-2 text-sm text-red-600">
+                    {validationErrors.jobTypeOther}
+                  </p>
+                )}
               </Field>
             </div>
           )}
@@ -361,10 +439,16 @@ export default function GeneralServiceForm({ formData, handleChange }) {
               name="serviceRendered"
               value={formData.serviceRendered}
               onChange={handleChange}
+              onBlur={handleBlur}
               rows="5"
               placeholder="รายการงานที่ดำเนินการ..."
-              className={`${inputClassName} resize-y`}
+              className={`${getInputClassName("serviceRendered")} resize-y`}
             />
+            {validationErrors.serviceRendered && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.serviceRendered}
+              </p>
+            )}
           </Field>
 
           <Field label="หมายเหตุ" englishLabel="Remark">
@@ -372,10 +456,16 @@ export default function GeneralServiceForm({ formData, handleChange }) {
               name="serviceRemark"
               value={formData.serviceRemark}
               onChange={handleChange}
+              onBlur={handleBlur}
               rows="4"
               placeholder="หมายเหตุเพิ่มเติม..."
-              className={`${inputClassName} resize-y`}
+              className={`${getInputClassName("serviceRemark")} resize-y`}
             />
+            {validationErrors.serviceRemark && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.serviceRemark}
+              </p>
+            )}
           </Field>
         </div>
       </SectionCard>
@@ -389,36 +479,54 @@ export default function GeneralServiceForm({ formData, handleChange }) {
           <div className="space-y-4">
             <Field label="รายละเอียด" englishLabel="Detail Problem Reported">
               <textarea
-                name="problemDetail"
-                value={formData.problemDetail}
-                onChange={handleChange}
-                rows="5"
-                placeholder="รายละเอียดปัญหาที่พบ..."
-                className={`${inputClassName} resize-y`}
-              />
-            </Field>
+              name="problemDetail"
+              value={formData.problemDetail}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              rows="5"
+              placeholder="รายละเอียดปัญหาที่พบ..."
+              className={`${getInputClassName("problemDetail")} resize-y`}
+            />
+            {validationErrors.problemDetail && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.problemDetail}
+              </p>
+            )}
+          </Field>
 
             <Field label="ความเห็นวิศวกร" englishLabel="Engineer's Remarks">
               <textarea
-                name="engineerRemark"
-                value={formData.engineerRemark}
-                onChange={handleChange}
-                rows="4"
-                placeholder="ความเห็น/ข้อเสนอแนะจากวิศวกร..."
-                className={`${inputClassName} resize-y`}
-              />
-            </Field>
+              name="engineerRemark"
+              value={formData.engineerRemark}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              rows="4"
+              placeholder="ความเห็น/ข้อเสนอแนะจากวิศวกร..."
+              className={`${getInputClassName("engineerRemark")} resize-y`}
+            />
+            {validationErrors.engineerRemark && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.engineerRemark}
+              </p>
+            )}
+          </Field>
 
             <Field label="ความเห็นลูกค้า" englishLabel="Customer Feedback">
               <textarea
-                name="customerFeedback"
-                value={formData.customerFeedback}
-                onChange={handleChange}
-                rows="4"
-                placeholder="ความเห็น/ข้อเสนอแนะจากลูกค้า..."
-                className={`${inputClassName} resize-y`}
-              />
-            </Field>
+              name="customerFeedback"
+              value={formData.customerFeedback}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              rows="4"
+              placeholder="ความเห็น/ข้อเสนอแนะจากลูกค้า..."
+              className={`${getInputClassName("customerFeedback")} resize-y`}
+            />
+            {validationErrors.customerFeedback && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.customerFeedback}
+              </p>
+            )}
+          </Field>
           </div>
 
           <div className="space-y-4">
@@ -490,6 +598,21 @@ export default function GeneralServiceForm({ formData, handleChange }) {
                   </div>
                 )}
               </div>
+              {validationErrors.overallStatus && (
+                <p className="mt-2 text-sm text-red-600">
+                  {validationErrors.overallStatus}
+                </p>
+              )}
+              {validationErrors.overallStatusAction && (
+                <p className="mt-2 text-sm text-red-600">
+                  {validationErrors.overallStatusAction}
+                </p>
+              )}
+              {validationErrors.overallStatusOther && (
+                <p className="mt-2 text-sm text-red-600">
+                  {validationErrors.overallStatusOther}
+                </p>
+              )}
             </Field>
           </div>
         </div>

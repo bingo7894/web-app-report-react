@@ -22,7 +22,10 @@ const openNativePicker = (event) => {
 };
 
 const SignaturePad = forwardRef(
-  ({ label, date, onDateChange, variant = "form1", scrollId }, ref) => {
+  (
+    { label, date, onDateChange, variant = "form1", scrollId, errorMessage },
+    ref,
+  ) => {
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const hasDrawnRef = useRef(false);
@@ -120,7 +123,11 @@ const SignaturePad = forwardRef(
     }
 
     return (
-      <div className="signature-box" style={styles.signatureBox} data-scroll-id={scrollId}>
+      <div
+        className="signature-box"
+        style={styles.signatureBox}
+        data-scroll-id={scrollId}
+      >
         <label style={styles.sigLabel}>{label}</label>
         <canvas
           ref={canvasRef}
@@ -136,13 +143,23 @@ const SignaturePad = forwardRef(
         <div className="sig-controls" style={styles.sigControls}>
           <input
             type="date"
-            name={scrollId === "signature-inspector" ? "signature-date-inspector" : "signature-date-owner"}
+            name={
+              scrollId === "signature-inspector"
+                ? "signature-date-inspector"
+                : "signature-date-owner"
+            }
             value={date}
             onChange={(e) => onDateChange(e.target.value)}
             onClick={openNativePicker}
             onFocus={openNativePicker}
-            style={styles.dateInput}
+            style={{
+              ...styles.dateInput,
+              ...(errorMessage ? styles.dateInputError : null),
+            }}
           />
+          {errorMessage ? (
+            <p style={styles.dateErrorText}>{errorMessage}</p>
+          ) : null}
           <button
             type="button"
             onClick={clearSignature}
@@ -187,6 +204,8 @@ export default function ReportFooter({
   variant = "form1",
   authToken = "",
   onUnauthorized,
+  validationErrors = {},
+  setValidationErrors,
 }) {
   const [remark, setRemark] = useState("");
   const [inspectorDate, setInspectorDate] = useState("");
@@ -226,8 +245,23 @@ export default function ReportFooter({
     focusField(target);
   };
 
-  const getRemarkPrefix = (item) =>
-    `หัวข้อ ${item.no} ${item.label} พบปัญหา :`;
+  const clearValidationError = (field) => {
+    setValidationErrors?.((prev) => {
+      if (!prev?.[field]) return prev;
+
+      const nextErrors = { ...prev };
+      delete nextErrors[field];
+      return nextErrors;
+    });
+  };
+
+  const setFieldError = (errors, field, message) => {
+    if (!errors[field]) {
+      errors[field] = message;
+    }
+  };
+
+  const getRemarkPrefix = (item) => `หัวข้อ ${item.no} ${item.label} พบปัญหา :`;
 
   const isRemarkIncomplete = (item) => {
     const value = String(formData[`remark_${item.name}`] || "").trim();
@@ -235,35 +269,29 @@ export default function ReportFooter({
     return !value || value === prefix || value === `${prefix} `;
   };
 
-  const validateGeneralFields = () => {
+  const validateGeneralFields = (errors) => {
     const commonFields = [
       ["reportDate", "กรุณาระบุวันที่"],
       ["projectName", "กรุณาระบุชื่อโครงการ"],
       ["address", "กรุณาระบุที่ตั้ง"],
       ["contactName", "กรุณาระบุชื่อผู้ติดต่อ"],
-      ["phone", "กรุณาระบุเบอร์โทร"],
+      ["phone", "กรุณาระบุเบอร์โทร 10 หลัก"],
       ["email", "กรุณาระบุ Email"],
       ["lineId", "กรุณาระบุ ID Line"],
     ];
 
     for (const [field, message] of commonFields) {
       if (!String(formData[field] || "").trim()) {
-        return { message, target: field };
+        setFieldError(errors, field, message);
       }
     }
 
     if (!isValidPhone(formData.phone)) {
-      return {
-        message: "กรุณาระบุเบอร์โทรเป็นตัวเลข 10 หลัก",
-        target: "phone",
-      };
+      setFieldError(errors, "phone", "กรุณาระบุเบอร์โทรเป็นตัวเลข 10 หลัก");
     }
 
     if (!isValidEmail(formData.email)) {
-      return {
-        message: "กรุณาระบุ Email ให้ถูกต้องตามรูปแบบ",
-        target: "email",
-      };
+      setFieldError(errors, "email", "กรุณาระบุ Email ให้ถูกต้องตามรูปแบบ");
     }
 
     if (variant === "form2") {
@@ -277,7 +305,7 @@ export default function ReportFooter({
 
       for (const [field, message] of form2Fields) {
         if (!String(formData[field] || "").trim()) {
-          return { message, target: field };
+          setFieldError(errors, field, message);
         }
       }
 
@@ -285,20 +313,18 @@ export default function ReportFooter({
         formData.jobType2 === "other" &&
         !String(formData.jobTypeOther || "").trim()
       ) {
-        return {
-          message: "กรุณาระบุรายละเอียดประเภทงาน",
-          target: "jobTypeOther",
-        };
+        setFieldError(errors, "jobTypeOther", "กรุณาระบุรายละเอียดประเภทงาน");
       }
 
       if (
         formData.overallStatus === "ใช้ไม่ได้" &&
         !String(formData.overallStatusAction || "").trim()
       ) {
-        return {
-          message: "กรุณาเลือกแนวทางดำเนินการเมื่อสถานะใช้ไม่ได้",
-          target: "overallStatusAction",
-        };
+        setFieldError(
+          errors,
+          "overallStatusAction",
+          "กรุณาเลือกแนวทางดำเนินการเมื่อสถานะใช้ไม่ได้",
+        );
       }
 
       if (
@@ -306,107 +332,113 @@ export default function ReportFooter({
         formData.overallStatusAction === "other" &&
         !String(formData.overallStatusOther || "").trim()
       ) {
-        return {
-          message: "กรุณาระบุรายละเอียดเพิ่มเติมของสถานะใช้ไม่ได้",
-          target: "overallStatusOther",
-        };
+        setFieldError(
+          errors,
+          "overallStatusOther",
+          "กรุณาระบุรายละเอียดเพิ่มเติมของสถานะใช้ไม่ได้",
+        );
       }
     }
-
-    return null;
   };
 
   const validateCurrentForm = () => {
-    const generalError = validateGeneralFields();
-    if (generalError) return generalError;
+    const errors = {};
+    validateGeneralFields(errors);
 
     if (variant === "form1") {
       if (!String(formData.inspectionType || "").trim()) {
-        return {
-          message: "กรุณาเลือกประเภทการตรวจสอบ",
-          target: "inspectionType",
-        };
+        setFieldError(errors, "inspectionType", "กรุณาเลือกประเภทการตรวจสอบ");
       }
 
       for (const section of CHECKLIST_SECTIONS) {
         for (const item of section.items) {
           if (!String(formData[item.name] || "").trim()) {
-            return {
-              message: `กรุณาประเมินหัวข้อ ${item.no} ${item.label}`,
-              target: item.name,
-            };
+            setFieldError(
+              errors,
+              item.name,
+              `กรุณาประเมินหัวข้อ ${item.no} ${item.label}`,
+            );
           }
 
           if (formData[item.name] === "ใช้ไม่ได้" && isRemarkIncomplete(item)) {
-            return {
-              message: `กรุณาระบุรายละเอียดปัญหาของหัวข้อ ${item.no}`,
-              target: `remark_${item.name}`,
-            };
+            setFieldError(
+              errors,
+              `remark_${item.name}`,
+              `กรุณาระบุรายละเอียดปัญหาของหัวข้อ ${item.no}`,
+            );
           }
         }
       }
 
       if (!String(remark || "").trim()) {
-        return {
-          message: "กรุณาเลือก GENERAL REMARKS",
-          target: "remarkTemplate",
-        };
+        setFieldError(errors, "remarkTemplate", "กรุณาเลือก GENERAL REMARKS");
       }
 
       if (inspectorSigRef.current?.isEmpty()) {
-        return {
-          message: "กรุณาลงลายเซ็นผู้ตรวจสอบอาคาร",
-          target: "signature-inspector",
-        };
+        setFieldError(
+          errors,
+          "signature-inspector",
+          "กรุณาลงลายเซ็นผู้ตรวจสอบอาคาร",
+        );
       }
 
       if (!String(inspectorDate || "").trim()) {
-        return {
-          message: "กรุณาระบุวันที่ของผู้ตรวจสอบอาคาร",
-          target: "signature-date-inspector",
-        };
+        setFieldError(
+          errors,
+          "signature-date-inspector",
+          "กรุณาระบุวันที่ของผู้ตรวจสอบอาคาร",
+        );
       }
 
       if (ownerSigRef.current?.isEmpty()) {
-        return {
-          message: "กรุณาลงลายเซ็นเจ้าของอาคาร / ผู้ดูแลอาคาร",
-          target: "signature-owner",
-        };
+        setFieldError(
+          errors,
+          "signature-owner",
+          "กรุณาลงลายเซ็นเจ้าของอาคาร / ผู้ดูแลอาคาร",
+        );
       }
 
       if (!String(ownerDate || "").trim()) {
-        return {
-          message: "กรุณาระบุวันที่ของเจ้าของอาคาร / ผู้ดูแลอาคาร",
-          target: "signature-date-owner",
-        };
+        setFieldError(
+          errors,
+          "signature-date-owner",
+          "กรุณาระบุวันที่ของเจ้าของอาคาร / ผู้ดูแลอาคาร",
+        );
       }
     } else {
       if (
         String(formData.overallStatus || "").trim() === "ใช้ไม่ได้" &&
         !String(formData.problemDetail || "").trim()
       ) {
-        return {
-          message: "กรุณาระบุรายละเอียดปัญหาที่พบ",
-          target: "problemDetail",
-        };
+        setFieldError(errors, "problemDetail", "กรุณาระบุรายละเอียดปัญหาที่พบ");
       }
 
       if (inspectorSigRef.current?.isEmpty()) {
-        return {
-          message: "กรุณาลงลายเซ็นผู้ตรวจสอบอาคาร",
-          target: "signature-inspector",
-        };
+        setFieldError(
+          errors,
+          "signature-inspector",
+          "กรุณาลงลายเซ็นผู้ตรวจสอบอาคาร",
+        );
       }
 
       if (ownerSigRef.current?.isEmpty()) {
-        return {
-          message: "กรุณาลงลายเซ็นเจ้าของอาคาร / ผู้ดูแลอาคาร",
-          target: "signature-owner",
-        };
+        setFieldError(
+          errors,
+          "signature-owner",
+          "กรุณาลงลายเซ็นเจ้าของอาคาร / ผู้ดูแลอาคาร",
+        );
       }
     }
 
-    return null;
+    setValidationErrors?.(errors);
+
+    const firstErrorEntry = Object.entries(errors)[0];
+    if (!firstErrorEntry) {
+      return null;
+    }
+
+    const [target, message] = firstErrorEntry;
+    return { target, message };
   };
 
   const handleOpenDialog = () => {
@@ -427,6 +459,7 @@ export default function ReportFooter({
 
   const handleRadioChange = (event) => {
     setRemark(event.target.value);
+    clearValidationError("remarkTemplate");
   };
 
   const footerDialog = validationDialog ? (
@@ -456,8 +489,17 @@ export default function ReportFooter({
               onChange={handleChange}
               onClick={openNativePicker}
               onFocus={openNativePicker}
-              className={`${inputClassName} cursor-pointer`}
+              className={`${inputClassName} cursor-pointer ${
+                validationErrors.endTime
+                  ? "border-red-400 focus:border-red-500 focus:ring-red-100"
+                  : ""
+              }`}
             />
+            {validationErrors.endTime && (
+              <p className="mt-2 text-sm text-red-600">
+                {validationErrors.endTime}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-2">
@@ -538,7 +580,14 @@ export default function ReportFooter({
           <h3 className="text-[18px] font-bold">GENERAL REMARKS</h3>
         </div>
 
-        <div className="space-y-4" data-scroll-id="remarkTemplate">
+        <div
+          className={`space-y-4 rounded-xl p-3 ${
+            validationErrors.remarkTemplate
+              ? "border border-red-300 bg-red-50"
+              : ""
+          }`}
+          data-scroll-id="remarkTemplate"
+        >
           <label className="flex items-start gap-2 text-[15px] text-slate-900">
             <input
               type="radio"
@@ -563,6 +612,11 @@ export default function ReportFooter({
             <span>ไม่พบปัญหา ณ วันที่ทำการตรวจสอบอาคาร</span>
           </label>
         </div>
+        {validationErrors.remarkTemplate && (
+          <p className="mt-2 text-sm text-red-600">
+            {validationErrors.remarkTemplate}
+          </p>
+        )}
       </div>
 
       <div className="rounded-2xl border border-slate-300 bg-white px-5 py-6 shadow-sm md:px-6">
@@ -576,15 +630,23 @@ export default function ReportFooter({
             ref={inspectorSigRef}
             label="ผู้ตรวจสอบอาคาร (Inspector)"
             date={inspectorDate}
-            onDateChange={setInspectorDate}
+            onDateChange={(value) => {
+              setInspectorDate(value);
+              clearValidationError("signature-date-inspector");
+            }}
             scrollId="signature-inspector"
+            errorMessage={validationErrors["signature-date-inspector"]}
           />
           <SignaturePad
             ref={ownerSigRef}
             label="เจ้าของอาคาร / ผู้ดูแลอาคาร"
             date={ownerDate}
-            onDateChange={setOwnerDate}
+            onDateChange={(value) => {
+              setOwnerDate(value);
+              clearValidationError("signature-date-owner");
+            }}
             scrollId="signature-owner"
+            errorMessage={validationErrors["signature-date-owner"]}
           />
         </div>
       </div>
@@ -654,6 +716,16 @@ const styles = {
     border: "1px solid #cbd5e1",
     textAlign: "center",
     cursor: "pointer",
+  },
+  dateInputError: {
+    border: "1px solid #f87171",
+    boxShadow: "0 0 0 3px rgba(254, 226, 226, 0.9)",
+  },
+  dateErrorText: {
+    margin: "2px 0 0",
+    color: "#dc2626",
+    fontSize: "12px",
+    fontWeight: 500,
   },
   btnClear: {
     background: "#64748b",

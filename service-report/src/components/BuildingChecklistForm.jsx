@@ -1,7 +1,12 @@
 import React from "react";
 import { CHECKLIST_SECTIONS } from "../utils/config";
 
-function BuildingChecklistForm({ formData, handleChange }) {
+function BuildingChecklistForm({
+  formData,
+  handleChange,
+  handleBlur,
+  validationErrors = {},
+}) {
   // Helper to pair items: [[1, 2], [3, 4], [5, 6], [7, null]]
   const pairItems = (items) => {
     const pairs = [];
@@ -41,7 +46,11 @@ function BuildingChecklistForm({ formData, handleChange }) {
             <span>{item.label}</span>
           </div>
 
-          <div className="flex items-center gap-4 border-t border-slate-300 bg-white px-4 py-3">
+          <div
+            className={`flex items-center gap-4 border-t border-slate-300 bg-white px-4 py-3 ${
+              validationErrors[item.name] ? "bg-red-50" : ""
+            }`}
+          >
             <label className="flex cursor-pointer items-center gap-1 whitespace-nowrap text-[12px] font-medium text-slate-900 md:text-[13px]">
               <input
                 type="radio"
@@ -131,10 +140,10 @@ function BuildingChecklistForm({ formData, handleChange }) {
               </div>
 
               <div className="space-y-3">
-                {section.items
-                  .filter((item) => formData[item.name] === "ใช้ไม่ได้")
-                  .map((item) => (
-                    <div key={item.name}>
+        {section.items
+          .filter((item) => formData[item.name] === "ใช้ไม่ได้")
+          .map((item) => (
+            <div key={item.name}>
                       <label className="mb-2 flex items-center gap-1 text-[13px] font-semibold text-[#c26b1e]">
                         <i className="fas fa-triangle-exclamation text-[11px] text-[#c26b1e]"></i>
                         {item.no} {item.label}
@@ -146,9 +155,19 @@ function BuildingChecklistForm({ formData, handleChange }) {
                           getRemarkPrefix(item)
                         }
                         onChange={(event) => handleRemarkChange(event, item)}
+                        onBlur={handleBlur}
                         rows="2"
-                        className="w-full rounded-md border border-[#ff9f2e] bg-[#fffdf2] px-3 py-3 text-[13px] outline-none transition focus:border-[#ff9f2e] focus:ring-2 focus:ring-[#ffe39b]"
+                        className={`w-full rounded-md bg-[#fffdf2] px-3 py-3 text-[13px] outline-none transition focus:ring-2 ${
+                          validationErrors[`remark_${item.name}`]
+                            ? "border border-red-400 focus:border-red-500 focus:ring-red-100"
+                            : "border border-[#ff9f2e] focus:border-[#ff9f2e] focus:ring-[#ffe39b]"
+                        }`}
                       />
+                      {validationErrors[`remark_${item.name}`] && (
+                        <p className="mt-2 text-sm text-red-600">
+                          {validationErrors[`remark_${item.name}`]}
+                        </p>
+                      )}
                     </div>
                   ))}
               </div>
