@@ -4,8 +4,15 @@ import ReportPage from "./pages/ReportPage";
 import { useAuthSession } from "./hooks/useAuthSession";
 
 function App() {
-  const { authState, isAuthLoading, isLoginSubmitting, login, logout } =
-    useAuthSession();
+  const {
+    authState,
+    isAuthLoading,
+    isLoginSubmitting,
+    authNotice,
+    login,
+    logout,
+    clearAuthNotice,
+  } = useAuthSession();
 
   if (isAuthLoading) {
     return (
@@ -20,7 +27,14 @@ function App() {
   }
 
   if (!authState.token) {
-    return <LoginPage onLogin={login} isLoading={isLoginSubmitting} />;
+    return (
+      <LoginPage
+        onLogin={login}
+        isLoading={isLoginSubmitting}
+        sessionNotice={authNotice}
+        onDismissNotice={clearAuthNotice}
+      />
+    );
   }
 
   return <ReportPage authState={authState} onLogout={logout} />;

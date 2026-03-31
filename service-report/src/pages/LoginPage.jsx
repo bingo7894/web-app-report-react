@@ -3,7 +3,12 @@ import React, { useState } from "react";
 const inputClassName =
   "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-600/10 hover:border-slate-300";
 
-export default function LoginPage({ onLogin, isLoading = false }) {
+export default function LoginPage({
+  onLogin,
+  isLoading = false,
+  sessionNotice = "",
+  onDismissNotice,
+}) {
   const [credentials, setCredentials] = useState({
     email: "",
     password: "",
@@ -98,6 +103,41 @@ export default function LoginPage({ onLogin, isLoading = false }) {
             </div>
 
             <form className="space-y-5" onSubmit={handleSubmit}>
+              {sessionNotice && (
+                <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-700">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="mt-0.5 h-4 w-4 shrink-0 opacity-80"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10A8 8 0 112 10a8 8 0 0116 0zm-8-4a.75.75 0 00-.75.75v3.5a.75.75 0 001.5 0v-3.5A.75.75 0 0010 6zm0 7.5a1 1 0 100-2 1 1 0 000 2z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <div className="flex-1">
+                    <span>{sessionNotice}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onDismissNotice}
+                    className="text-amber-500 transition hover:text-amber-700"
+                  >
+                    <span className="sr-only">ปิดข้อความแจ้งเตือน</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="h-4 w-4"
+                    >
+                      <path d="M6.28 5.22a.75.75 0 011.06 0L10 7.94l2.66-2.72a.75.75 0 111.08 1.04L11.06 9l2.68 2.72a.75.75 0 11-1.08 1.04L10 10.06l-2.66 2.7a.75.75 0 01-1.08-1.04L8.94 9 6.28 6.26a.75.75 0 010-1.04z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="mb-2 block text-[13px] font-semibold text-slate-700 uppercase tracking-wide">
                   Email

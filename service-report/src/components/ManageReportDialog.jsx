@@ -309,7 +309,7 @@ export default function ManageReportDialog({
       const result = await response.json();
 
       if (response.status === 401) {
-        onUnauthorized?.();
+        onUnauthorized?.("Session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
         throw new Error("Session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
       }
 

@@ -10,6 +10,7 @@ export function useAuthSession() {
   });
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
+  const [authNotice, setAuthNotice] = useState("");
 
   useEffect(() => {
     const savedAuth = window.localStorage.getItem(AUTH_STORAGE_KEY);
@@ -43,6 +44,7 @@ export function useAuthSession() {
       } catch {
         window.localStorage.removeItem(AUTH_STORAGE_KEY);
         setAuthState({ token: "", user: null });
+        setAuthNotice("Session หมดอายุ กรุณาเข้าสู่ระบบใหม่");
       } finally {
         setIsAuthLoading(false);
       }
@@ -53,6 +55,7 @@ export function useAuthSession() {
 
   const login = async ({ email, password }) => {
     setIsLoginSubmitting(true);
+    setAuthNotice("");
 
     try {
       const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
@@ -81,6 +84,7 @@ export function useAuthSession() {
         JSON.stringify(nextAuthState),
       );
       setAuthState(nextAuthState);
+      setAuthNotice("");
 
       return { ok: true };
     } catch (error) {
@@ -94,16 +98,23 @@ export function useAuthSession() {
     }
   };
 
-  const logout = () => {
+  const logout = (noticeMessage = "") => {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
     setAuthState({ token: "", user: null });
+    setAuthNotice(noticeMessage);
+  };
+
+  const clearAuthNotice = () => {
+    setAuthNotice("");
   };
 
   return {
     authState,
     isAuthLoading,
     isLoginSubmitting,
+    authNotice,
     login,
     logout,
+    clearAuthNotice,
   };
 }
