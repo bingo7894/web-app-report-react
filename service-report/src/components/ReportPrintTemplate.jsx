@@ -238,17 +238,47 @@ function renderSignatureSection(signatures, sigDateStr) {
   );
 }
 
-function renderForm1(formData, signatures, sigDateStr) {
-  const remarks = getChecklistRemarks(formData);
-  const moveClosingSectionToNewPage = shouldMoveForm1ClosingSectionToNewPage(
-    remarks,
-    formData,
+function renderReportFooterInfo() {
+  return (
+    <div style={styles.reportFooterInfo}>
+      บริษัท เทส ทรู จำกัด 64/1 หมู่ที่ 2 แขวงลำต้อยติ่ง เขตหนองจอก กรุงเทพมหานคร 10530 เลขประจำตัวผู้เสียภาษี 0105566123472
+      <br />
+      Test True Company Limited 64/1 Moo 2, Lam Toi Ting Subdistrict, Nong Chok, Bangkok 10530 Tax Registration Number 0105566123472
+      <br />
+      E-Mail: testtrueservice@gmail.com , Website: www.testtrue.co.th
+    </div>
   );
+}
+
+function renderPageNumber(pageNumber, totalPages) {
+  return (
+    <div style={styles.pageNumber}>
+      หน้า: {pageNumber}/{totalPages}
+    </div>
+  );
+}
+
+function renderPageShell(content, pageNumber, totalPages, shouldBreakAfter = false) {
+  return (
+    <div
+      style={{
+        ...styles.page,
+        ...(shouldBreakAfter ? styles.pageBreakAfter : null),
+      }}
+    >
+      <div style={styles.pageContent}>{content}</div>
+      {renderReportFooterInfo()}
+      {renderPageNumber(pageNumber, totalPages)}
+    </div>
+  );
+}
+
+function renderForm1Content(formData, signatures, sigDateStr, moveClosingSectionToNewPage) {
+  const remarks = getChecklistRemarks(formData);
   const closingSection = (
     <div
       style={{
         ...styles.pageBlock,
-        ...(moveClosingSectionToNewPage ? styles.pageBreakBefore : null),
       }}
     >
       <div style={styles.remarkBox}>
@@ -272,10 +302,8 @@ function renderForm1(formData, signatures, sigDateStr) {
               สรุปปัญหาที่พบ / Summary of Issue:
             </div>
             {remarks.map((item) => {
-              const remarkText = `หัวข้อ ${item.no} : ${item.label} พบว่า : ${item.remark}`;
-              const isSection1_4 = remarkText.includes("หัวข้อ 1.4");
               return (
-                <div key={item.key} style={{ ...styles.problemItem, color: isSection1_4 ? "red" : "inherit" }}>
+                <div key={item.key} style={styles.problemItem}>
                   <span style={styles.problemBullet}>•</span>
                   <span>
                     <strong>หัวข้อ {item.no}</strong> : {item.label} พบว่า :{" "}
@@ -294,8 +322,9 @@ function renderForm1(formData, signatures, sigDateStr) {
     </div>
   );
 
-  return (
+  const primaryContent = (
     <>
+      {renderForm1Header(sigDateStr, formData.codeNo)}
       <div style={styles.pageBlock}>
         {renderSectionHeader("ข้อมูลทั่วไป", "GENERAL INFORMATION")}
         <table style={styles.sectionTable}>
@@ -366,15 +395,20 @@ function renderForm1(formData, signatures, sigDateStr) {
           </tbody>
         </table>
       </div>
-
-      {closingSection}
     </>
   );
+
+  if (moveClosingSectionToNewPage) {
+    return [primaryContent, <div style={styles.secondPageTopSpacing}>{closingSection}</div>];
+  }
+
+  return [<>{primaryContent}{closingSection}</>];
 }
 
-function renderForm2(formData, signatures, sigDateStr) {
-  return (
+function renderForm2Content(formData, signatures, sigDateStr) {
+  return [
     <>
+      {renderDefaultHeader(sigDateStr, formData.codeNo)}
       <div style={styles.pageBlock}>
         {renderSectionHeader("ข้อมูลทั่วไป", "GENERAL INFORMATION")}
         <table style={styles.sectionTable}>
@@ -479,29 +513,40 @@ function renderForm2(formData, signatures, sigDateStr) {
       </div>
 
       <div style={styles.pageBlock}>{renderSignatureSection(signatures, sigDateStr)}</div>
-    </>
-  );
+    </>,
+  ];
 }
 
 const ReportPrintTemplate = forwardRef(
   ({ formData = {}, signatures = {} }, ref) => {
     const sigDateStr = fmtDateToDMY(formData.reportDate);
     const isForm2 = formData.formType === "form2";
+    const form1Remarks = getChecklistRemarks(formData);
+    const moveForm1ClosingSectionToNewPage =
+      !isForm2 &&
+      shouldMoveForm1ClosingSectionToNewPage(form1Remarks, formData);
+    const pages = isForm2
+      ? renderForm2Content(formData, signatures, sigDateStr)
+      : renderForm1Content(
+          formData,
+          signatures,
+          sigDateStr,
+          moveForm1ClosingSectionToNewPage,
+        );
+    const totalPages = pages.length;
 
     return (
-      <div ref={ref} style={styles.page}>
-        {isForm2
-          ? renderDefaultHeader(sigDateStr, formData.codeNo)
-          : renderForm1Header(sigDateStr, formData.codeNo)}
-        {isForm2
-          ? renderForm2(formData, signatures, sigDateStr)
-          : renderForm1(formData, signatures, sigDateStr)}
-
-        <div style={styles.reportFooterInfo}>
-          บริษัท เทส ทรู จำกัด 64/1 หมู่ที่ 2 แขวงลำต้อยติ่ง เขตหนองจอก กรุงเทพมหานคร 10530 เลขประจำตัวผู้เสียภาษี 0105566123472<br />
-          Test True Company Limited 64/1 Moo 2, Lam Toi Ting Subdistrict, Nong Chok, Bangkok 10530 Tax Registration Number 0105566123472<br />
-          E-Mail: testtrueservice@gmail.com , Website: www.testtrue.co.th
-        </div>
+      <div ref={ref} style={styles.document}>
+        {pages.map((pageContent, index) => (
+          <React.Fragment key={index}>
+            {renderPageShell(
+              pageContent,
+              index + 1,
+              totalPages,
+              index < totalPages - 1,
+            )}
+          </React.Fragment>
+        ))}
       </div>
     );
   },
@@ -518,14 +563,28 @@ const paleBlueFill = "#f4f5fb";
 const highlightYellow = "#fff3b8";
 
 const styles = {
+  document: {
+    backgroundColor: "#fff",
+  },
   page: {
     backgroundColor: "#fff",
     color: "#111827",
     fontFamily: "Arial, sans-serif",
     fontSize: "10px",
-    lineHeight: 1.25,
-    padding: "18px",
+    lineHeight: 1.2,
+    padding: "18px 18px 28px",
+    display: "flex",
+    flexDirection: "column",
+    boxSizing: "border-box",
+    position: "relative",
+    minHeight: "297mm",
+  },
+  pageContent: {
+    flex: "1 1 auto",
+  },
+  pageBreakAfter: {
     pageBreakAfter: "always",
+    breakAfter: "page",
   },
   topBrandRow: {
     display: "flex",
@@ -557,12 +616,12 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: "18px",
-    minHeight: "74px",
+    marginBottom: "12px",
+    minHeight: "62px",
   },
   form1Logo: {
-    width: "150px",
-    height: "64px",
+    width: "138px",
+    height: "54px",
     objectFit: "contain",
   },
   form1QrWrap: {
@@ -572,8 +631,8 @@ const styles = {
     gap: "4px",
   },
   form1QrCode: {
-    width: "58px",
-    height: "58px",
+    width: "50px",
+    height: "50px",
     objectFit: "contain",
   },
   form1QrCaption: {
@@ -583,7 +642,7 @@ const styles = {
   form1TitleTable: {
     width: "100%",
     borderCollapse: "collapse",
-    marginBottom: "10px",
+    marginBottom: "8px",
   },
   form1TitleCell: {
     border: `1px solid ${borderColor}`,
@@ -597,7 +656,7 @@ const styles = {
   },
   form1MetaLabelCell: {
     border: `1px solid ${borderColor}`,
-    padding: "2px 6px",
+    padding: "2px 5px",
     fontSize: "8px",
     color: "#6b7280",
     background: "#ffffff",
@@ -605,7 +664,7 @@ const styles = {
   },
   form1MetaValueCell: {
     border: `1px solid ${borderColor}`,
-    padding: "2px 8px",
+    padding: "2px 6px",
     fontSize: "9px",
     background: "#ffffff",
     width: "38%",
@@ -650,7 +709,7 @@ const styles = {
   sectionTable: {
     width: "100%",
     borderCollapse: "collapse",
-    marginBottom: "10px",
+    marginBottom: "8px",
   },
   thLabel: {
     fontSize: "10px",
@@ -689,12 +748,12 @@ const styles = {
   valueCell: {
     width: "30%",
     border: `1px solid ${borderColor}`,
-    padding: "4px 8px",
+    padding: "3px 7px",
     verticalAlign: "top",
   },
   valueCellWide: {
     border: `1px solid ${borderColor}`,
-    padding: "4px 8px",
+    padding: "3px 7px",
     verticalAlign: "top",
     whiteSpace: "pre-wrap",
   },
@@ -704,13 +763,13 @@ const styles = {
     color: "#000000",
     background: highlightYellow,
     borderLeft: "4px solid #f1b500",
-    padding: "4px 8px",
-    margin: "2px 0 8px",
+    padding: "3px 8px",
+    margin: "2px 0 6px",
   },
   checklistTable: {
     width: "100%",
     borderCollapse: "collapse",
-    marginBottom: "10px",
+    marginBottom: "8px",
   },
   checkHeadCell: {
     border: `1px solid ${borderColor}`,
@@ -726,19 +785,19 @@ const styles = {
     background: paleBlueFill,
     color: reportBlue,
     fontWeight: 700,
-    padding: "5px 6px",
+    padding: "4px 6px",
   },
   checkNoCell: {
     border: `1px solid ${borderColor}`,
     color: reportBlue,
     fontWeight: 700,
     textAlign: "center",
-    padding: "4px",
+    padding: "3px",
     verticalAlign: "top",
   },
   checkLabelCell: {
     border: `1px solid ${borderColor}`,
-    padding: "4px 6px",
+    padding: "3px 6px",
     verticalAlign: "top",
   },
   checkResultCell: {
@@ -751,7 +810,7 @@ const styles = {
   checkResultTextCell: {
     border: `1px solid ${borderColor}`,
     textAlign: "center",
-    padding: "4px 6px",
+    padding: "3px 6px",
     fontWeight: 700,
     verticalAlign: "top",
   },
@@ -759,8 +818,8 @@ const styles = {
     border: "1px solid #f0d66d",
     borderLeft: "4px solid #f1b500",
     borderRadius: "4px",
-    padding: "8px 10px",
-    marginBottom: "8px",
+    padding: "6px 8px",
+    marginBottom: "6px",
     background: highlightYellow,
   },
   remarkTitle: {
@@ -770,22 +829,22 @@ const styles = {
   },
   generalRemarkText: {
     fontWeight: 700,
-    marginBottom: "8px",
+    marginBottom: "6px",
   },
   problemListWrap: {
     borderTop: "1px dashed #c7d2fe",
-    paddingTop: "6px",
+    paddingTop: "4px",
     color: "#d64545",
   },
   problemListTitle: {
     fontWeight: 700,
-    marginBottom: "3px",
+    marginBottom: "2px",
   },
   problemItem: {
     display: "flex",
     alignItems: "flex-start",
     gap: "4px",
-    marginTop: "3px",
+    marginTop: "2px",
     breakInside: "avoid",
     pageBreakInside: "avoid",
   },
@@ -827,7 +886,7 @@ const styles = {
   },
   signatureSection: {
     display: "flex",
-    gap: "8px",
+    gap: "6px",
     pageBreakInside: "avoid",
     breakInside: "avoid",
   },
@@ -839,7 +898,7 @@ const styles = {
     background: "#fff",
   },
   signatureImageArea: {
-    height: "46px",
+    height: "38px",
     borderBottom: "1px solid #e5e7eb",
     display: "flex",
     alignItems: "center",
@@ -848,46 +907,51 @@ const styles = {
   },
   signatureImage: {
     maxWidth: "100%",
-    maxHeight: "38px",
+    maxHeight: "30px",
     objectFit: "contain",
   },
   signatureMeta: {
     textAlign: "center",
-    padding: "5px 4px 6px",
+    padding: "4px 4px 5px",
     color: "#1b2f8b",
   },
   signatureTitle: {
     fontWeight: 700,
-    fontSize: "9px",
+    fontSize: "8.5px",
   },
   signatureSubtitle: {
-    fontSize: "8px",
+    fontSize: "7.5px",
   },
   signatureDate: {
     marginTop: "2px",
-    fontSize: "8px",
+    fontSize: "7.5px",
   },
   reportFooterInfo: {
-    marginTop: "8px",
+    marginTop: "6px",
     textAlign: "center",
     color: "#4b5563",
-    fontSize: "8.5px",
-    lineHeight: "1.4",
+    fontSize: "7.5px",
+    lineHeight: "1.25",
     borderTop: "1.5px solid #e5e7eb",
-    paddingTop: "6px",
+    paddingTop: "4px",
     whiteSpace: "pre-line",
   },
   pageBlock: {
     breakInside: "avoid",
     pageBreakInside: "avoid",
-    marginBottom: "6px",
-  },
-  pageBreakBefore: {
-    pageBreakBefore: "always",
-    breakBefore: "page",
-    paddingTop: "6px",
+    marginBottom: "4px",
   },
   signatureSectionWrap: {
-    marginTop: "4px",
+    marginTop: "2px",
+  },
+  secondPageTopSpacing: {
+    paddingTop: "22px",
+  },
+  pageNumber: {
+    position: "absolute",
+    right: "4px",
+    bottom: "4px",
+    fontSize: "8px",
+    color: "#9ca3af",
   },
 };

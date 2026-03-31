@@ -116,6 +116,12 @@ export default function ManageReportDialog({
     setEmailList(emailList.filter((e) => e !== email));
   };
 
+  const handleClearEmails = () => {
+    setEmailList([]);
+    setEmailInput("");
+    setSendResult(null);
+  };
+
   const toAbsoluteUrl = (value) => {
     try {
       return new URL(value, window.location.origin).href;
@@ -373,21 +379,36 @@ export default function ManageReportDialog({
 
             {/* Email Chips */}
             {emailList.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
-                {emailList.map((email, index) => (
-                  <div
-                    key={index}
-                    className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-blue-300 text-sm text-slate-700"
+              <div className="mb-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xs font-medium text-slate-500">
+                    รายชื่ออีเมลผู้รับ {emailList.length} รายการ
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleClearEmails}
+                    className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100"
                   >
-                    <span>{email}</span>
-                    <button
-                      onClick={() => handleRemoveEmail(email)}
-                      className="text-slate-400 hover:text-red-500 transition-colors ml-1"
+                    <i className="fas fa-trash-can"></i>
+                    เคลียร์อีเมล
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {emailList.map((email, index) => (
+                    <div
+                      key={index}
+                      className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-blue-300 text-sm text-slate-700"
                     >
-                      <i className="fas fa-times text-xs"></i>
-                    </button>
-                  </div>
-                ))}
+                      <span>{email}</span>
+                      <button
+                        onClick={() => handleRemoveEmail(email)}
+                        className="text-slate-400 hover:text-red-500 transition-colors ml-1"
+                      >
+                        <i className="fas fa-times text-xs"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
