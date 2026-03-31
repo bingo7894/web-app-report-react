@@ -19,6 +19,12 @@ function BuildingChecklistForm({
   const getRemarkPrefix = (item) =>
     `หัวข้อ ${item.no} ${item.label} พบว่า : `;
 
+  const getRemarkValue = (item) =>
+    String(formData[`remark_${item.name}`] || "")
+      .replace(`หัวข้อ ${item.no} ${item.label} พบปัญหา :`, "")
+      .replace(`หัวข้อ ${item.no} ${item.label} พบว่า :`, "")
+      .trimStart();
+
   const handleStatusChange = (event, item) => {
     const { value } = event.target;
 
@@ -33,12 +39,11 @@ function BuildingChecklistForm({
         },
       });
     } else if (value === "ใช้ไม่ได้") {
-      // เมื่อเลือก "ใช้ไม่ได้" -> ใส่ Prefix ทันที
-      const prefix = getRemarkPrefix(item);
+      const currentRemark = getRemarkValue(item);
       handleChange({
         target: {
           name: `remark_${item.name}`,
-          value: prefix,
+          value: currentRemark,
         },
       });
     }
@@ -92,49 +97,11 @@ function BuildingChecklistForm({
     );
   };
 
-
-  const handleKeyDown = (event, item) => {
-    const prefix = getRemarkPrefix(item);
-    const { selectionStart, selectionEnd } = event.target;
-
-    // ป้องกันการลบ (Backspace) เมื่ออยู่ในเขต Prefix
-    if (event.key === "Backspace") {
-      // ถ้า Cursor อยู่ที่จุดเริ่มของ Prefix หรือ คลุมดำโดน Prefix
-      if (selectionStart < prefix.length || (selectionStart === prefix.length && selectionStart === selectionEnd)) {
-        if (selectionStart <= prefix.length) {
-          event.preventDefault();
-        }
-      }
-    }
-
-    // ป้องกันการลบ (Delete) เมื่ออยู่ในเขต Prefix
-    if (event.key === "Delete") {
-      if (selectionStart < prefix.length) {
-        event.preventDefault();
-      }
-    }
-
-    // ป้องกันการเลือกทั้งหมด (Ctrl+A) แล้วกดลบ หรือการพิมพ์ทับ Prefix
-    if (selectionStart < prefix.length && event.key !== "ArrowRight" && event.key !== "ArrowLeft" && event.key !== "ArrowUp" && event.key !== "ArrowDown" && !event.ctrlKey && !event.metaKey) {
-        // อนญาตให้เลื่อน Cursor ได้ แต่ห้ามพิมพ์หรือลบทับ Prefix
-        // (ยกเว้นปุ่มควบคุม)
-    }
-  };
-
   const handleRemarkChange = (event, item) => {
-    const prefix = getRemarkPrefix(item);
-    let { value } = event.target;
-
-    // ถ้าหลุดมาได้ (เช่น ลากเมาส์ลบ) ให้ดึง Prefix กลับมาทันที
-    if (!value.startsWith(prefix)) {
-      value = prefix + value.replace(prefix, ""); // พยายามรักษาข้อความต่อท้าย (ถ้ามี)
-      if (!value.startsWith(prefix)) value = prefix; // ถ้ายังไม่ได้อีก ให้เอาแค่ Prefix
-    }
-
     handleChange({
       target: {
         name: `remark_${item.name}`,
-        value: value,
+        value: event.target.value,
       },
     });
   };
@@ -188,24 +155,31 @@ function BuildingChecklistForm({
         {section.items
           .filter((item) => formData[item.name] === "ใช้ไม่ได้")
           .map((item) => (
-            <div key={item.name}>
+                    <div key={item.name}>
                       <label className="mb-2 flex items-center gap-1 text-[13px] font-semibold text-[#c26b1e]">
                         <i className="fas fa-triangle-exclamation text-[11px] text-[#c26b1e]"></i>
                         {item.no} {item.label}
                       </label>
-                      <textarea
-                        name={`remark_${item.name}`}
-                        value={formData[`remark_${item.name}`] || ""}
-                        onChange={(event) => handleRemarkChange(event, item)}
-                        onKeyDown={(event) => handleKeyDown(event, item)}
-                        onBlur={handleBlur}
-                        rows="2"
-                        className={`w-full rounded-md bg-[#fffdf2] px-3 py-3 text-[13px] outline-none transition focus:ring-2 ${
+                      <div
+                        className={`overflow-hidden rounded-md bg-[#fffdf2] ${
                           validationErrors[`remark_${item.name}`]
-                            ? "border border-red-400 focus:border-red-500 focus:ring-red-100"
-                            : "border border-[#ff9f2e] focus:border-[#ff9f2e] focus:ring-[#ffe39b]"
+                            ? "border border-red-400 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100"
+                            : "border border-[#ff9f2e] focus-within:border-[#ff9f2e] focus-within:ring-2 focus-within:ring-[#ffe39b]"
                         }`}
-                      />
+                      >
+                        <div className="border-b border-[#ffd27c] bg-[#fff7d6] px-3 py-2 text-[13px] font-medium text-[#9a4f12]">
+                          {getRemarkPrefix(item)}
+                        </div>
+                        <textarea
+                          name={`remark_${item.name}`}
+                          value={getRemarkValue(item)}
+                          onChange={(event) => handleRemarkChange(event, item)}
+                          onBlur={handleBlur}
+                          rows="2"
+                          placeholder="ระบุรายละเอียดเพิ่มเติม"
+                          className="w-full resize-none bg-transparent px-3 py-3 text-[13px] outline-none"
+                        />
+                      </div>
                       {validationErrors[`remark_${item.name}`] && (
                         <p className="mt-2 text-sm text-red-600">
                           {validationErrors[`remark_${item.name}`]}

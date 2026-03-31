@@ -378,8 +378,7 @@ export default function ReportFooter({
 
   const isRemarkIncomplete = (item) => {
     const value = String(formData[`remark_${item.name}`] || "").trim();
-    const prefix = getRemarkPrefix(item);
-    return !value || value === prefix || value === `${prefix} `;
+    return !value;
   };
 
   const validateGeneralFields = (errors) => {
