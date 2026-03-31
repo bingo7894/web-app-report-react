@@ -343,7 +343,7 @@ function renderForm1Content(formData, signatures, sigDateStr, moveClosingSection
               "เบอร์โทร",
               "Mobile",
               formData.phone,
-              "Email",
+              "อีเมล",
               "Email",
               formData.email,
             )}
@@ -427,7 +427,7 @@ function renderForm2Content(formData, signatures, sigDateStr) {
               "เบอร์โทร",
               "Mobile",
               formData.phone,
-              "Email",
+              "อีเมล",
               "Email",
               formData.email,
             )}
