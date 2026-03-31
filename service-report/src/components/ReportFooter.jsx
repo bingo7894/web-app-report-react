@@ -41,6 +41,7 @@ const SignaturePad = forwardRef(
     const hasDrawnRef = useRef(false);
     const signatureDataUrlRef = useRef(null);
     const resizeFrameRef = useRef(null);
+    const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
     const restoreSignature = (dataUrl) => {
       const canvas = canvasRef.current;
@@ -293,12 +294,23 @@ const SignaturePad = forwardRef(
           ) : null}
           <button
             type="button"
-            onClick={clearSignature}
+            onClick={() => setIsClearConfirmOpen(true)}
             style={styles.btnClear}
           >
             <i className="fas fa-eraser"></i> ลบลายเซ็น
           </button>
         </div>
+        {isClearConfirmOpen ? (
+          <ConfirmActionDialog
+            title="ยืนยันการล้างลายเซ็น"
+            message="ต้องการล้างลายเซ็นนี้ใช่หรือไม่"
+            onCancel={() => setIsClearConfirmOpen(false)}
+            onConfirm={() => {
+              clearSignature();
+              setIsClearConfirmOpen(false);
+            }}
+          />
+        ) : null}
       </div>
     );
   },
@@ -329,17 +341,15 @@ function ValidationDialog({ message, onClose }) {
   );
 }
 
-function ResetConfirmDialog({ onCancel, onConfirm }) {
+function ConfirmActionDialog({ title, message, onCancel, onConfirm }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center gap-3 text-red-600">
-          <i className="fas fa-rotate-left text-xl"></i>
-          <h4 className="text-lg font-bold">ยืนยันการล้างฟอร์ม</h4>
+          <i className="fas fa-triangle-exclamation text-xl"></i>
+          <h4 className="text-lg font-bold">{title}</h4>
         </div>
-        <p className="text-[15px] leading-7 text-slate-700">
-          ต้องการล้างข้อมูลที่กรอกทั้งหมดใช่หรือไม่
-        </p>
+        <p className="text-[15px] leading-7 text-slate-700">{message}</p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
@@ -358,6 +368,17 @@ function ResetConfirmDialog({ onCancel, onConfirm }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function ResetConfirmDialog({ onCancel, onConfirm }) {
+  return (
+    <ConfirmActionDialog
+      title="ยืนยันการล้างฟอร์ม"
+      message="ต้องการล้างข้อมูลที่กรอกทั้งหมดใช่หรือไม่"
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
   );
 }
 
@@ -381,6 +402,7 @@ export default function ReportFooter({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [validationDialog, setValidationDialog] = useState(null);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [signatureClearTarget, setSignatureClearTarget] = useState(null);
   const [signatures, setSignatures] = useState({
     inspector: footerDraft.signatures?.inspector || null,
     owner: footerDraft.signatures?.owner || null,
@@ -699,6 +721,27 @@ export default function ReportFooter({
     />
   ) : null;
 
+  const handleConfirmClearSignature = () => {
+    if (signatureClearTarget === "inspector") {
+      inspectorSigRef.current?.clearSignature?.();
+    }
+
+    if (signatureClearTarget === "owner") {
+      ownerSigRef.current?.clearSignature?.();
+    }
+
+    setSignatureClearTarget(null);
+  };
+
+  const signatureClearDialog = signatureClearTarget ? (
+    <ConfirmActionDialog
+      title="ยืนยันการล้างลายเซ็น"
+      message="ต้องการล้างลายเซ็นนี้ใช่หรือไม่"
+      onCancel={() => setSignatureClearTarget(null)}
+      onConfirm={handleConfirmClearSignature}
+    />
+  ) : null;
+
   if (variant === "form2") {
     return (
       <div className="report-footer-container space-y-6">
@@ -750,7 +793,7 @@ export default function ReportFooter({
               </div>
               <button
                 type="button"
-                onClick={() => inspectorSigRef.current?.clearSignature?.()}
+                onClick={() => setSignatureClearTarget("inspector")}
                 className={`${signatureActionButtonClass} mt-3`}
               >
                 <i className="fas fa-eraser"></i> ลบลายเซ็น
@@ -773,7 +816,7 @@ export default function ReportFooter({
               </div>
               <button
                 type="button"
-                onClick={() => ownerSigRef.current?.clearSignature?.()}
+                onClick={() => setSignatureClearTarget("owner")}
                 className={`${signatureActionButtonClass} mt-3`}
               >
                 <i className="fas fa-eraser"></i> ลบลายเซ็น
@@ -805,6 +848,7 @@ export default function ReportFooter({
 
         {footerDialog}
         {resetConfirmDialog}
+        {signatureClearDialog}
 
         <ManageReportDialog
           isOpen={isDialogOpen}
@@ -938,6 +982,7 @@ export default function ReportFooter({
 
       {footerDialog}
       {resetConfirmDialog}
+      {signatureClearDialog}
 
       <ManageReportDialog
         isOpen={isDialogOpen}
