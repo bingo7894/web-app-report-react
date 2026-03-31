@@ -30,6 +30,15 @@ const SignaturePad = forwardRef(
     const [isDrawing, setIsDrawing] = useState(false);
     const hasDrawnRef = useRef(false);
 
+    const clearSignature = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasDrawnRef.current = false;
+    };
+
     useImperativeHandle(ref, () => ({
       getSignatureData: () => {
         return canvasRef.current
@@ -92,14 +101,6 @@ const SignaturePad = forwardRef(
       ctx.moveTo(x, y);
     };
 
-    function clearSignature() {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      hasDrawnRef.current = false;
-    }
 
     if (variant === "form2") {
       return (
@@ -231,9 +232,9 @@ export default function ReportFooter({
       return;
     }
 
-    setInspectorDate(reportDateOnly);
-    setOwnerDate(reportDateOnly);
-  }, [formData.reportDate]);
+    if (inspectorDate !== reportDateOnly) setInspectorDate(reportDateOnly);
+    if (ownerDate !== reportDateOnly) setOwnerDate(reportDateOnly);
+  }, [formData.reportDate, inspectorDate, ownerDate]);
 
   const focusField = (target) => {
     if (!target) return;
@@ -385,9 +386,6 @@ export default function ReportFooter({
         }
       }
 
-      if (!String(remark || "").trim()) {
-        setFieldError(errors, "remarkTemplate", "กรุณาเลือก GENERAL REMARKS");
-      }
 
       if (inspectorSigRef.current?.isEmpty()) {
         setFieldError(
@@ -472,9 +470,13 @@ export default function ReportFooter({
     setIsDialogOpen(true);
   };
 
-  const handleRadioChange = (event) => {
-    setRemark(event.target.value);
-    clearValidationError("remarkTemplate");
+  const handleRadioToggle = (value) => {
+    if (remark === value) {
+      setRemark("");
+    } else {
+      setRemark(value);
+      clearValidationError("remarkTemplate");
+    }
   };
 
   const footerDialog = validationDialog ? (
@@ -608,7 +610,9 @@ export default function ReportFooter({
               type="radio"
               name="remarkTemplate"
               value="พบปัญหาทั่วไปสามารถวางแผนกำหนดการแก้ไขได้ โดยจะส่งตามข้อมูลของโครงการภายหลัง"
-              onChange={handleRadioChange}
+              checked={remark === "พบปัญหาทั่วไปสามารถวางแผนกำหนดการแก้ไขได้ โดยจะส่งตามข้อมูลของโครงการภายหลัง"}
+              onClick={() => handleRadioToggle("พบปัญหาทั่วไปสามารถวางแผนกำหนดการแก้ไขได้ โดยจะส่งตามข้อมูลของโครงการภายหลัง")}
+              onChange={() => {}} // ป้องกัน React warning
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
             />
             <span>
@@ -621,7 +625,9 @@ export default function ReportFooter({
               type="radio"
               name="remarkTemplate"
               value="ไม่พบปัญหา ณ วันที่ทำการตรวจสอบอาคาร"
-              onChange={handleRadioChange}
+              checked={remark === "ไม่พบปัญหา ณ วันที่ทำการตรวจสอบอาคาร"}
+              onClick={() => handleRadioToggle("ไม่พบปัญหา ณ วันที่ทำการตรวจสอบอาคาร")}
+              onChange={() => {}} // ป้องกัน React warning
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
             />
             <span>ไม่พบปัญหา ณ วันที่ทำการตรวจสอบอาคาร</span>

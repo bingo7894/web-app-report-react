@@ -108,7 +108,6 @@ function renderForm1Header(sigDateStr, codeNo) {
         <img src="/img/Logo.jpg" alt="Logo" style={styles.form1Logo} />
         <div style={styles.form1QrWrap}>
           <img src="/img/qrline.jpg" alt="QR Code" style={styles.form1QrCode} />
-          <div style={styles.form1QrCaption}>สแกนเพื่อเพิ่มเพื่อนเรา</div>
         </div>
       </div>
 
@@ -138,7 +137,6 @@ function renderDefaultHeader(sigDateStr, codeNo) {
         <img src="/img/Logo.jpg" alt="Logo" style={styles.logo} />
         <div style={styles.qrWrap}>
           <img src="/img/qrline.jpg" alt="QR Code" style={styles.qrCode} />
-          <div style={styles.qrCaption}>สแกนเพื่อเพิ่มเพื่อนเรา</div>
         </div>
       </div>
 
@@ -257,21 +255,35 @@ function renderForm1(formData, signatures, sigDateStr) {
         <div style={styles.remarkTitle}>
           GENERAL REMARKS (ความคิดเห็น / ข้อเสนอแนะเพิ่มเติม)
         </div>
-        <div style={styles.generalRemarkText}>{fmt(formData.generalRemark)}</div>
+        {formData.generalRemark ? (
+          <div style={styles.generalRemarkText}>
+            {formData.generalRemark}
+          </div>
+        ) : (
+          remarks.length === 0 && (
+            <div style={styles.generalRemarkText}>
+              —
+            </div>
+          )
+        )}
         {remarks.length > 0 && (
           <div style={styles.problemListWrap}>
             <div style={styles.problemListTitle}>
               สรุปปัญหาที่พบ / Summary of Issue:
             </div>
-            {remarks.map((item) => (
-              <div key={item.key} style={styles.problemItem}>
-                <span style={styles.problemBullet}>•</span>
-                <span>
-                  <strong>หัวข้อ {item.no}</strong> : {item.label} พบปัญหา :{" "}
-                  {item.remark}
-                </span>
-              </div>
-            ))}
+            {remarks.map((item) => {
+              const remarkText = `หัวข้อ ${item.no} : ${item.label} พบปัญหา : ${item.remark}`;
+              const isSection1_4 = remarkText.includes("หัวข้อ 1.4");
+              return (
+                <div key={item.key} style={{ ...styles.problemItem, color: isSection1_4 ? "red" : "inherit" }}>
+                  <span style={styles.problemBullet}>•</span>
+                  <span>
+                    <strong>หัวข้อ {item.no}</strong> : {item.label} พบปัญหา :{" "}
+                    {item.remark}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -319,11 +331,10 @@ function renderForm1(formData, signatures, sigDateStr) {
           <thead>
             <tr>
               <th style={{ ...styles.checkHeadCell, width: "10%" }}>ข้อ</th>
-              <th style={{ ...styles.checkHeadCell, width: "50%" }}>
+              <th style={{ ...styles.checkHeadCell, width: "55%" }}>
                 รายการตรวจสอบ
               </th>
-              <th style={{ ...styles.checkHeadCell, width: "8%" }}>✔</th>
-              <th style={{ ...styles.checkHeadCell, width: "32%" }}>
+              <th style={{ ...styles.checkHeadCell, width: "35%" }}>
                 ผลการตรวจสอบ
               </th>
             </tr>
@@ -344,11 +355,8 @@ function renderForm1(formData, signatures, sigDateStr) {
                     <tr key={item.name}>
                       <td style={styles.checkNoCell}>{item.no}</td>
                       <td style={styles.checkLabelCell}>{item.label}</td>
-                      <td style={{ ...styles.checkResultCell, color: statusColor }}>
-                        {getStatusIcon(value)}
-                      </td>
                       <td style={{ ...styles.checkResultTextCell, color: statusColor }}>
-                        {fmt(value)}
+                        {getStatusIcon(value)} {fmt(value)}
                       </td>
                     </tr>
                   );
@@ -489,7 +497,11 @@ const ReportPrintTemplate = forwardRef(
           ? renderForm2(formData, signatures, sigDateStr)
           : renderForm1(formData, signatures, sigDateStr)}
 
-        <div style={styles.printInfo}>Printed on {new Date().toLocaleString("th-TH")}</div>
+        <div style={styles.reportFooterInfo}>
+          บริษัท เทส ทรู จำกัด 64/1 หมู่ที่ 2 แขวงลำต้อยติ่ง เขตหนองจอก กรุงเทพมหานคร 10530 เลขประจำตัวผู้เสียภาษี 0105566123472<br />
+          Test True Company Limited 64/1 Moo 2, Lam Toi Ting Subdistrict, Nong Chok, Bangkok 10530 Tax Registration Number 0105566123472<br />
+          E-Mail: testtrueservice@gmail.com , Website: www.testtrue.co.th
+        </div>
       </div>
     );
   },
@@ -578,8 +590,8 @@ const styles = {
     textAlign: "center",
     fontSize: "15px",
     letterSpacing: "1.8px",
-    color: reportBlue,
-    background: softBlueFill,
+    color: "#ffffff",
+    background: reportBlue,
     fontWeight: 700,
     padding: "5px 0",
   },
@@ -608,7 +620,8 @@ const styles = {
     textAlign: "center",
     fontSize: "16px",
     letterSpacing: "1.5px",
-    color: "#1b2f8b",
+    color: "#ffffff",
+    background: reportBlue,
     fontWeight: 700,
     padding: "5px 0",
   },
@@ -625,13 +638,14 @@ const styles = {
     width: "38%",
   },
   sectionHeader: {
-    border: `1px solid ${borderColor}`,
-    borderBottom: "none",
-    color: "#ffffff",
-    background: reportBlue,
+    border: "1px solid #f0d66d",
+    borderLeft: "4px solid #f1b500",
+    color: "#000000",
+    background: highlightYellow,
     fontSize: "10px",
     fontWeight: 700,
     padding: "4px 6px",
+    marginBottom: "2px",
   },
   sectionTable: {
     width: "100%",
@@ -687,7 +701,7 @@ const styles = {
   inlineRemarkLabel: {
     fontSize: "10px",
     fontWeight: 700,
-    color: "#6b5b00",
+    color: "#000000",
     background: highlightYellow,
     borderLeft: "4px solid #f1b500",
     padding: "4px 8px",
@@ -743,13 +757,14 @@ const styles = {
   },
   remarkBox: {
     border: "1px solid #f0d66d",
+    borderLeft: "4px solid #f1b500",
     borderRadius: "4px",
     padding: "8px 10px",
     marginBottom: "8px",
     background: highlightYellow,
   },
   remarkTitle: {
-    color: "#6b5b00",
+    color: "#000000",
     fontWeight: 700,
     marginBottom: "6px",
   },
@@ -852,17 +867,20 @@ const styles = {
     marginTop: "2px",
     fontSize: "8px",
   },
-  printInfo: {
-    marginTop: "14px",
+  reportFooterInfo: {
+    marginTop: "8px",
     textAlign: "center",
-    color: "#9ca3af",
-    fontSize: "8px",
-    borderTop: "1px solid #e5e7eb",
-    paddingTop: "8px",
+    color: "#4b5563",
+    fontSize: "8.5px",
+    lineHeight: "1.4",
+    borderTop: "1.5px solid #e5e7eb",
+    paddingTop: "6px",
+    whiteSpace: "pre-line",
   },
   pageBlock: {
     breakInside: "avoid",
     pageBreakInside: "avoid",
+    marginBottom: "6px",
   },
   pageBreakBefore: {
     pageBreakBefore: "always",
@@ -870,6 +888,6 @@ const styles = {
     paddingTop: "6px",
   },
   signatureSectionWrap: {
-    marginTop: "8px",
+    marginTop: "4px",
   },
 };
