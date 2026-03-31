@@ -29,6 +29,29 @@ const SignaturePad = forwardRef(
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const hasDrawnRef = useRef(false);
+    const signatureDataUrlRef = useRef(null);
+
+    const restoreSignature = (dataUrl) => {
+      const canvas = canvasRef.current;
+      if (!canvas || !dataUrl) return;
+
+      const image = new Image();
+      image.onload = () => {
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      };
+      image.src = dataUrl;
+    };
+
+    const saveSignatureSnapshot = () => {
+      const canvas = canvasRef.current;
+      if (!canvas || !hasDrawnRef.current) {
+        return;
+      }
+
+      signatureDataUrlRef.current = canvas.toDataURL("image/png");
+    };
 
     const clearSignature = () => {
       const canvas = canvasRef.current;
@@ -37,13 +60,16 @@ const SignaturePad = forwardRef(
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       hasDrawnRef.current = false;
+      signatureDataUrlRef.current = null;
     };
 
     useImperativeHandle(ref, () => ({
       getSignatureData: () => {
-        return canvasRef.current
-          ? canvasRef.current.toDataURL("image/png")
-          : null;
+        if (signatureDataUrlRef.current) {
+          return signatureDataUrlRef.current;
+        }
+
+        return canvasRef.current ? canvasRef.current.toDataURL("image/png") : null;
       },
       isEmpty: () => !hasDrawnRef.current,
       clearSignature,
@@ -54,6 +80,10 @@ const SignaturePad = forwardRef(
       if (!canvas) return;
 
       const resizeCanvas = () => {
+        const previousSignature =
+          hasDrawnRef.current && canvas.width > 0 && canvas.height > 0
+            ? canvas.toDataURL("image/png")
+            : signatureDataUrlRef.current;
         const rect = canvas.parentElement.getBoundingClientRect();
         canvas.width = rect.width;
         canvas.height = 160;
@@ -63,14 +93,25 @@ const SignaturePad = forwardRef(
         ctx.lineWidth = 2.5;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
+
+        if (previousSignature) {
+          restoreSignature(previousSignature);
+        }
       };
 
       resizeCanvas();
       window.addEventListener("resize", resizeCanvas);
-      return () => window.removeEventListener("resize", resizeCanvas);
+      window.visualViewport?.addEventListener("resize", resizeCanvas);
+      return () => {
+        window.removeEventListener("resize", resizeCanvas);
+        window.visualViewport?.removeEventListener("resize", resizeCanvas);
+      };
     }, []);
 
     const startDrawing = (event) => {
+      if (event.cancelable) {
+        event.preventDefault();
+      }
       hasDrawnRef.current = true;
       setIsDrawing(true);
       draw(event);
@@ -81,12 +122,17 @@ const SignaturePad = forwardRef(
       const canvas = canvasRef.current;
       if (!canvas) return;
       canvas.getContext("2d").beginPath();
+      saveSignatureSnapshot();
     };
 
     const draw = (event) => {
       if (!isDrawing) return;
       const canvas = canvasRef.current;
       if (!canvas) return;
+
+      if (event.cancelable) {
+        event.preventDefault();
+      }
 
       const ctx = canvas.getContext("2d");
       const rect = canvas.getBoundingClientRect();

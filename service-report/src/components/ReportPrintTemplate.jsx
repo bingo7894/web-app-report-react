@@ -886,7 +886,7 @@ const styles = {
   },
   signatureSection: {
     display: "flex",
-    gap: "6px",
+    gap: "3px",
     pageBreakInside: "avoid",
     breakInside: "avoid",
   },
@@ -898,21 +898,21 @@ const styles = {
     background: "#fff",
   },
   signatureImageArea: {
-    height: "38px",
+    height: "54px",
     borderBottom: "1px solid #e5e7eb",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "4px",
+    padding: "6px",
   },
   signatureImage: {
     maxWidth: "100%",
-    maxHeight: "30px",
+    maxHeight: "42px",
     objectFit: "contain",
   },
   signatureMeta: {
     textAlign: "center",
-    padding: "4px 4px 5px",
+    padding: "6px 4px 8px",
     color: "#1b2f8b",
   },
   signatureTitle: {
