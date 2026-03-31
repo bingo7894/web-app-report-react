@@ -187,7 +187,7 @@ function App() {
           <button
             type="button"
             onClick={handleLogout}
-            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100"
           >
             ออกจากระบบ
           </button>

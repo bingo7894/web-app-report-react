@@ -33,6 +33,7 @@ const SignaturePad = forwardRef(
           : null;
       },
       isEmpty: () => !hasDrawnRef.current,
+      clearSignature,
     }));
 
     useEffect(() => {
@@ -87,37 +88,32 @@ const SignaturePad = forwardRef(
       ctx.moveTo(x, y);
     };
 
-    const clearSignature = () => {
+    function clearSignature() {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       hasDrawnRef.current = false;
-    };
+    }
 
     if (variant === "form2") {
       return (
-        <div className="p-4 text-center" data-scroll-id={scrollId}>
-          <canvas
-            ref={canvasRef}
-            onMouseDown={startDrawing}
-            onMouseMove={draw}
-            onMouseUp={stopDrawing}
-            onMouseLeave={stopDrawing}
-            onTouchStart={startDrawing}
-            onTouchMove={draw}
-            onTouchEnd={stopDrawing}
-            className="h-40 w-full touch-none rounded-xl bg-white"
-          />
+        <div className="text-center" data-scroll-id={scrollId}>
+          <div className="overflow-hidden rounded-xl bg-white">
+            <canvas
+              ref={canvasRef}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              onTouchStart={startDrawing}
+              onTouchMove={draw}
+              onTouchEnd={stopDrawing}
+              className="h-40 w-full touch-none bg-white"
+            />
+          </div>
           <p className="mt-3 text-[15px] text-slate-500">{label}</p>
-          <button
-            type="button"
-            onClick={clearSignature}
-            className={signatureActionButtonClass}
-          >
-            ลงลายเซ็น
-          </button>
         </div>
       );
     }
@@ -452,23 +448,41 @@ export default function ReportFooter({
           <div className="grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-2">
             <div className="text-center">
               <div className="overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50">
-                <SignaturePad
-                  ref={inspectorSigRef}
-                  label="ผู้ตรวจสอบอาคาร (Inspector)"
-                  variant="form2"
-                  scrollId="signature-inspector"
-                />
+                <div className="p-4">
+                  <SignaturePad
+                    ref={inspectorSigRef}
+                    label="ผู้ตรวจสอบอาคาร (Inspector)"
+                    variant="form2"
+                    scrollId="signature-inspector"
+                  />
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => inspectorSigRef.current?.clearSignature?.()}
+                className={`${signatureActionButtonClass} mt-3`}
+              >
+                <i className="fas fa-eraser"></i> ลบลายเซ็น
+              </button>
             </div>
             <div className="text-center">
               <div className="overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50">
-                <SignaturePad
-                  ref={ownerSigRef}
-                  label="เจ้าของอาคาร / ผู้ดูแลอาคาร"
-                  variant="form2"
-                  scrollId="signature-owner"
-                />
+                <div className="p-4">
+                  <SignaturePad
+                    ref={ownerSigRef}
+                    label="เจ้าของอาคาร / ผู้ดูแลอาคาร"
+                    variant="form2"
+                    scrollId="signature-owner"
+                  />
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => ownerSigRef.current?.clearSignature?.()}
+                className={`${signatureActionButtonClass} mt-3`}
+              >
+                <i className="fas fa-eraser"></i> ลบลายเซ็น
+              </button>
             </div>
           </div>
         </div>
