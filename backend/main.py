@@ -168,13 +168,80 @@ def send_email_with_pdf(data: dict, pdf_path: str):
                     msg["Subject"] = f"เอกสารรายงานการปฏิบัติงานเบื้องต้น — โครงการ {project}"
                     msg["From"] = smtp_user
                     msg["To"] = recipient
-                    msg.set_content(f"""เรียนเจ้าของอาคารหรือผู้ดูแลอาคาร
+
+                    # --- เนื้อหาอีเมล (Plain Text สำรอง) ---
+                    plain_text = f"""เรียนคุณ {info.get('contactName', '—')}
 
 ขอนำส่งรายงานการปฎิบัติงานเบื้องต้นสำหรับโครงการ {project}
 คุณสามารถดาวน์โหลดหรือดูรายละเอียดได้ในไฟล์ PDF ที่แนบมานี้ครับ
 
 ขอแสดงความนับถือ,
-ระบบ Service Report อัตโนมัติ""")
+ระบบ Service Report อัตโนมัติ
+
+Best Regards,
+Sontaya Compeetong (Boy)
+Project Manager
+M: +66 99245 4363
+E: testtrueservice@gmail.com
+
+Test True Company Limited (Head Office)
+64/1 Moo 2, Lam Toi Ting Subdistrict, Nong Chok, Bangkok 10530
+Tax Registration Number 0105566123472
+W) http://www.testtrue.co.th, Line) @testtrue, FB) testtruepage
+"""
+                    msg.set_content(plain_text)
+
+                    # --- เนื้อหาอีเมล (HTML เพื่อความสวยงาม) ---
+                    html_content = f"""
+                    <html>
+                    <body style="font-family: 'Tahoma', sans-serif; line-height: 1.4; color: #222;">
+                        <p>เรียนคุณ <strong>{info.get("contactName", "—")}</strong></p>
+                        <p>ขอนำส่งรายงานการปฎิบัติงานเบื้องต้นสำหรับโครงการ <strong>{project}</strong></p>
+                        <p>คุณสามารถดาวน์โหลดหรือดูรายละเอียดได้ในไฟล์ PDF ที่แนบมานี้ครับ</p>
+                        <br>
+                        <p>ขอแสดงความนับถือ,<br>ระบบ Service Report อัตโนมัติ</p>
+                        
+                        <div style="margin-top: 30px;">
+                            <img src="https://ci3.googleusercontent.com/mail-sig/AIorK4yqmyG9vpOQHy0KZmVVm1u-m644TcEW6wuCV63aHRt8j9WROJ4sBp5ilLwmWuPDo6RsmSAGpXFAlAfw" width="144" height="144" style="display: block; margin-bottom: 5px;">
+                            <p style="margin: 0; color: #2222cc; font-size: 16px;"><strong>Best Regards,</strong></p>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #1766d4;"><strong>Sontaya Compeetong (Boy)</strong></p>
+                            <p style="margin: 0; font-size: 13px; color: #1766d4;"><strong>Project Manager</strong></p>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #1766d4;"><strong>M: +66 99245 4363</strong></p>
+                            <p style="margin: 0; font-size: 13px; color: #1766d4;"><strong>E: <a href="mailto:testtrueservice@gmail.com" style="color: #1155cc; text-decoration: underline;">testtrueservice@gmail.com</a></strong></p>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 30px;">
+                            <img src="https://ci3.googleusercontent.com/mail-sig/AIorK4zbK_3aNMtcpYsMb8x2-ewNtJ5HzMvVS9lUsUOcsPs4s3d0b9X2QrZ2JkPUt3VlRmIymItVhZogT_ou" width="200" height="112" style="display: inline-block;">
+                            <p style="margin: 10px 0 0 0; font-size: 13px; color: #0b5394;"><strong>Test True Company Limited (Head Office)</strong></p>
+                            <p style="margin: 0; font-size: 13px; color: #929292;">64/1 Moo 2, Lam Toi Ting Subdistrict,</p>
+                            <p style="margin: 0; font-size: 13px; color: #929292;">Nong Chok, Bangkok 10530</p>
+                            <p style="margin: 0; font-size: 13px; color: #929292;">Tax Registration Number 0105566123472</p>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #7f7f7f;">
+                                W) <a href="https://www.testtrue.co.th/" style="color: #1155cc; text-decoration: none;">http://www.testtrue.co.th</a>, 
+                                Line) <a href="https://lin.ee/9Qqs1nJ" style="color: #1155cc; text-decoration: none;">@testtrue</a>, 
+                                FB) <a href="https://web.facebook.com/Testtrue" style="color: #1155cc; text-decoration: none;">testtruepage</a>
+                            </p>
+                        </div>
+                        
+                        <div style="margin-top: 40px; font-size: 10px;">
+                            <table border="0" cellpadding="4" cellspacing="0" style="border-radius:5px;border:1px solid #cfcfcf;background-color:#ffffff;border-collapse:separate">
+                              <tbody>
+                                <tr>
+                                  <td>
+                                    <img alt="" width="40" height="40" src="https://firebasestorage.googleapis.com/v0/b/gmailtrack-main.appspot.com/o/neverDelete%2Fgmtgifv1.gif?alt=media&token=90c5a820-9b1f-4822-8e91-8580475b4dda">
+                                  </td>
+                                  <td>
+                                    <span style="color:#a4a4a4;font-family:Arial;font-size:10px;">sender notified by</span><br>
+                                    <a href="https://www.mailtrack.email/" style="color:#767676;font-weight:bold;text-decoration:none;font-family:Arial;font-size:10px;">Mail Track for Gmail</a>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                        </div>
+                    </body>
+                    </html>
+                    """
+                    msg.add_alternative(html_content, subtype='html')
 
                     if pdf_data:
                         msg.add_attachment(
