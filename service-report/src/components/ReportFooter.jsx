@@ -216,9 +216,24 @@ export default function ReportFooter({
     inspector: null,
     owner: null,
   });
+  const syncSignatureDatesRef = useRef(true);
 
   const inspectorSigRef = useRef();
   const ownerSigRef = useRef();
+
+  useEffect(() => {
+    const reportDateValue = String(formData.reportDate || "");
+    const reportDateOnly = reportDateValue.includes("T")
+      ? reportDateValue.split("T")[0]
+      : reportDateValue;
+
+    if (!reportDateOnly || !syncSignatureDatesRef.current) {
+      return;
+    }
+
+    setInspectorDate(reportDateOnly);
+    setOwnerDate(reportDateOnly);
+  }, [formData.reportDate]);
 
   const focusField = (target) => {
     if (!target) return;
@@ -631,6 +646,7 @@ export default function ReportFooter({
             label="ผู้ตรวจสอบอาคาร (Inspector)"
             date={inspectorDate}
             onDateChange={(value) => {
+              syncSignatureDatesRef.current = false;
               setInspectorDate(value);
               clearValidationError("signature-date-inspector");
             }}
@@ -642,6 +658,7 @@ export default function ReportFooter({
             label="เจ้าของอาคาร / ผู้ดูแลอาคาร"
             date={ownerDate}
             onDateChange={(value) => {
+              syncSignatureDatesRef.current = false;
               setOwnerDate(value);
               clearValidationError("signature-date-owner");
             }}

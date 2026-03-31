@@ -71,9 +71,11 @@ export default function ReportPage({ authState, onLogout }) {
   useEffect(() => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const defaultDateTime = now.toISOString().slice(0, 16);
     setFormData((prev) => ({
       ...prev,
-      reportDate: now.toISOString().slice(0, 16),
+      reportDate: prev.reportDate || defaultDateTime,
+      endTime: prev.endTime || defaultDateTime,
     }));
   }, []);
 
