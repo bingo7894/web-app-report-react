@@ -3,6 +3,7 @@ import BuildingChecklistForm from "../components/BuildingChecklistForm";
 import GeneralServiceForm from "../components/GeneralServiceForm";
 import BuildingInspectionGeneralInfo from "../components/BuildingInspectionGeneralInfo";
 import ReportFooter from "../components/ReportFooter";
+import { sanitizePhoneInput } from "../utils/inputValidation";
 
 const initialFormData = {
   formType: "form1",
@@ -35,7 +36,8 @@ export default function ReportPage({ authState, onLogout }) {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const nextValue = name === "phone" ? sanitizePhoneInput(value) : value;
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
   };
 
   useEffect(() => {

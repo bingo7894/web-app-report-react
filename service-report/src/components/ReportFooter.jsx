@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import ManageReportDialog from "./ManageReportDialog";
 import { CHECKLIST_SECTIONS } from "../utils/config";
+import { isValidEmail, isValidPhone } from "../utils/inputValidation";
 
 const signatureActionButtonClass =
   "rounded-lg bg-slate-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700";
@@ -249,6 +250,20 @@ export default function ReportFooter({
       if (!String(formData[field] || "").trim()) {
         return { message, target: field };
       }
+    }
+
+    if (!isValidPhone(formData.phone)) {
+      return {
+        message: "กรุณาระบุเบอร์โทรเป็นตัวเลข 10 หลัก",
+        target: "phone",
+      };
+    }
+
+    if (!isValidEmail(formData.email)) {
+      return {
+        message: "กรุณาระบุ Email ให้ถูกต้องตามรูปแบบ",
+        target: "email",
+      };
     }
 
     if (variant === "form2") {

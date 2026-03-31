@@ -267,6 +267,9 @@ export default function GeneralServiceForm({ formData, handleChange }) {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="กรอกเบอร์โทร 10 หลัก"
               className={inputClassName}
             />
           </Field>
@@ -290,6 +293,8 @@ export default function GeneralServiceForm({ formData, handleChange }) {
               name="email"
               value={formData.email}
               onChange={handleChange}
+              autoComplete="email"
+              placeholder="name@example.com"
               className={inputClassName}
             />
           </Field>

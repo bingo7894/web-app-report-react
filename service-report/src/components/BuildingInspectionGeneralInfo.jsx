@@ -92,6 +92,9 @@ export default function BuildingInspectionGeneralInfo({
             name="phone"
             value={formData.phone}
             onChange={handleChange}
+            inputMode="numeric"
+            maxLength={10}
+            placeholder="กรอกเบอร์โทร 10 หลัก"
             className={inputClassName}
           />
         </div>
@@ -105,6 +108,8 @@ export default function BuildingInspectionGeneralInfo({
             name="email"
             value={formData.email}
             onChange={handleChange}
+            autoComplete="email"
+            placeholder="name@example.com"
             className={inputClassName}
           />
         </div>
