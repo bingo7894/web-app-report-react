@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import BuildingChecklistForm from "../components/BuildingChecklistForm";
 import GeneralServiceForm from "../components/GeneralServiceForm";
 import BuildingInspectionGeneralInfo from "../components/BuildingInspectionGeneralInfo";
@@ -7,6 +7,11 @@ import {
   getFieldValidationMessage,
   sanitizePhoneInput,
 } from "../utils/inputValidation";
+import {
+  clearReportDraft,
+  loadReportDraft,
+  saveReportDraft,
+} from "../utils/reportDraftStorage";
 
 const initialFormData = {
   formType: "form1",
@@ -38,9 +43,44 @@ function createInitialFormData() {
   return { ...initialFormData };
 }
 
+function createInitialFooterDraft() {
+  return {
+    generalRemark: "",
+    inspectorDate: "",
+    ownerDate: "",
+    signatures: {
+      inspector: null,
+      owner: null,
+    },
+    syncSignatureDates: true,
+  };
+}
+
 export default function ReportPage({ authState, onLogout }) {
-  const [formData, setFormData] = useState(createInitialFormData);
+  const draftKeyUser = authState.user?.email || "guest";
+  const [formData, setFormData] = useState(() => {
+    const draft = loadReportDraft(draftKeyUser);
+    return {
+      ...createInitialFormData(),
+      ...(draft?.formData || {}),
+    };
+  });
+  const [footerDraft, setFooterDraft] = useState(() => {
+    const draft = loadReportDraft(draftKeyUser);
+    return {
+      ...createInitialFooterDraft(),
+      ...(draft?.footerDraft || {}),
+      signatures: {
+        ...createInitialFooterDraft().signatures,
+        ...(draft?.footerDraft?.signatures || {}),
+      },
+    };
+  });
   const [validationErrors, setValidationErrors] = useState({});
+  const latestDraftRef = useRef({
+    formData,
+    footerDraft,
+  });
 
   const applyDefaultDates = (data) => {
     const now = new Date();
@@ -88,9 +128,61 @@ export default function ReportPage({ authState, onLogout }) {
     setFormData((prev) => applyDefaultDates(prev));
   }, []);
 
+  useEffect(() => {
+    const draft = loadReportDraft(draftKeyUser);
+
+    setFormData(
+      applyDefaultDates({
+        ...createInitialFormData(),
+        ...(draft?.formData || {}),
+      }),
+    );
+    setFooterDraft({
+      ...createInitialFooterDraft(),
+      ...(draft?.footerDraft || {}),
+      signatures: {
+        ...createInitialFooterDraft().signatures,
+        ...(draft?.footerDraft?.signatures || {}),
+      },
+    });
+    setValidationErrors({});
+  }, [draftKeyUser]);
+
+  useEffect(() => {
+    latestDraftRef.current = {
+      formData,
+      footerDraft,
+    };
+    saveReportDraft(draftKeyUser, latestDraftRef.current);
+  }, [draftKeyUser, formData, footerDraft]);
+
+  useEffect(() => {
+    const persistLatestDraft = () => {
+      saveReportDraft(draftKeyUser, latestDraftRef.current);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        persistLatestDraft();
+      }
+    };
+
+    window.addEventListener("pagehide", persistLatestDraft);
+    window.addEventListener("beforeunload", persistLatestDraft);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", persistLatestDraft);
+      window.removeEventListener("beforeunload", persistLatestDraft);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [draftKeyUser]);
+
   const handleResetForm = () => {
     setFormData(applyDefaultDates(createInitialFormData()));
+    setFooterDraft(createInitialFooterDraft());
     setValidationErrors({});
+    clearReportDraft(draftKeyUser);
   };
 
   return (
@@ -181,6 +273,8 @@ export default function ReportPage({ authState, onLogout }) {
               <ReportFooter
                 formData={formData}
                 handleChange={handleChange}
+                footerDraft={footerDraft}
+                setFooterDraft={setFooterDraft}
                 authToken={authState.token}
                 onUnauthorized={onLogout}
                 onResetForm={handleResetForm}
@@ -200,6 +294,8 @@ export default function ReportPage({ authState, onLogout }) {
             <ReportFooter
               formData={formData}
               handleChange={handleChange}
+              footerDraft={footerDraft}
+              setFooterDraft={setFooterDraft}
               variant="form2"
               authToken={authState.token}
               onUnauthorized={onLogout}

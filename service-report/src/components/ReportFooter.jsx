@@ -23,7 +23,16 @@ const openNativePicker = (event) => {
 
 const SignaturePad = forwardRef(
   (
-    { label, date, onDateChange, variant = "form1", scrollId, errorMessage },
+    {
+      label,
+      date,
+      onDateChange,
+      variant = "form1",
+      scrollId,
+      errorMessage,
+      initialSignatureData = null,
+      onSignatureChange,
+    },
     ref,
   ) => {
     const containerRef = useRef(null);
@@ -52,7 +61,9 @@ const SignaturePad = forwardRef(
         return;
       }
 
-      signatureDataUrlRef.current = canvas.toDataURL("image/png");
+      const nextSignature = canvas.toDataURL("image/png");
+      signatureDataUrlRef.current = nextSignature;
+      onSignatureChange?.(nextSignature);
     };
 
     const clearSignature = () => {
@@ -63,6 +74,7 @@ const SignaturePad = forwardRef(
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       hasDrawnRef.current = false;
       signatureDataUrlRef.current = null;
+      onSignatureChange?.(null);
     };
 
     useImperativeHandle(ref, () => ({
@@ -143,6 +155,29 @@ const SignaturePad = forwardRef(
         window.visualViewport?.removeEventListener("resize", requestResize);
       };
     }, []);
+
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      if (!initialSignatureData) {
+        if (signatureDataUrlRef.current) {
+          const ctx = canvas.getContext("2d");
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        signatureDataUrlRef.current = null;
+        hasDrawnRef.current = false;
+        return;
+      }
+
+      if (initialSignatureData === signatureDataUrlRef.current) {
+        return;
+      }
+
+      signatureDataUrlRef.current = initialSignatureData;
+      hasDrawnRef.current = true;
+      restoreSignature(initialSignatureData);
+    }, [initialSignatureData]);
 
     const getPoint = (event) => {
       const canvas = canvasRef.current;
@@ -294,9 +329,43 @@ function ValidationDialog({ message, onClose }) {
   );
 }
 
+function ResetConfirmDialog({ onCancel, onConfirm }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <div className="mb-4 flex items-center gap-3 text-red-600">
+          <i className="fas fa-rotate-left text-xl"></i>
+          <h4 className="text-lg font-bold">ยืนยันการล้างฟอร์ม</h4>
+        </div>
+        <p className="text-[15px] leading-7 text-slate-700">
+          ต้องการล้างข้อมูลที่กรอกทั้งหมดใช่หรือไม่
+        </p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-xl border border-slate-300 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            ยกเลิก
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-xl bg-red-600 px-5 py-2.5 font-semibold text-white transition hover:bg-red-700"
+          >
+            ตกลง
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ReportFooter({
   formData = {},
   handleChange,
+  footerDraft = {},
+  setFooterDraft,
   variant = "form1",
   authToken = "",
   onUnauthorized,
@@ -304,19 +373,50 @@ export default function ReportFooter({
   validationErrors = {},
   setValidationErrors,
 }) {
-  const [remark, setRemark] = useState("");
-  const [inspectorDate, setInspectorDate] = useState("");
-  const [ownerDate, setOwnerDate] = useState("");
+  const [remark, setRemark] = useState(footerDraft.generalRemark || "");
+  const [inspectorDate, setInspectorDate] = useState(
+    footerDraft.inspectorDate || "",
+  );
+  const [ownerDate, setOwnerDate] = useState(footerDraft.ownerDate || "");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [validationDialog, setValidationDialog] = useState(null);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [signatures, setSignatures] = useState({
-    inspector: null,
-    owner: null,
+    inspector: footerDraft.signatures?.inspector || null,
+    owner: footerDraft.signatures?.owner || null,
   });
   const syncSignatureDatesRef = useRef(true);
 
   const inspectorSigRef = useRef();
   const ownerSigRef = useRef();
+
+  useEffect(() => {
+    setRemark(footerDraft.generalRemark || "");
+    setInspectorDate(footerDraft.inspectorDate || "");
+    setOwnerDate(footerDraft.ownerDate || "");
+    setSignatures({
+      inspector: footerDraft.signatures?.inspector || null,
+      owner: footerDraft.signatures?.owner || null,
+    });
+    syncSignatureDatesRef.current = footerDraft.syncSignatureDates !== false;
+  }, [
+    footerDraft.generalRemark,
+    footerDraft.inspectorDate,
+    footerDraft.ownerDate,
+    footerDraft.signatures?.inspector,
+    footerDraft.signatures?.owner,
+    footerDraft.syncSignatureDates,
+  ]);
+
+  useEffect(() => {
+    setFooterDraft?.({
+      generalRemark: remark,
+      inspectorDate,
+      ownerDate,
+      signatures,
+      syncSignatureDates: syncSignatureDatesRef.current,
+    });
+  }, [remark, inspectorDate, ownerDate, signatures, setFooterDraft]);
 
   useEffect(() => {
     const reportDateValue = String(formData.reportDate || "");
@@ -582,6 +682,23 @@ export default function ReportFooter({
     />
   ) : null;
 
+  const handleConfirmReset = () => {
+    setIsResetConfirmOpen(false);
+    onResetForm?.();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const requestResetForm = () => {
+    setIsResetConfirmOpen(true);
+  };
+
+  const resetConfirmDialog = isResetConfirmOpen ? (
+    <ResetConfirmDialog
+      onCancel={() => setIsResetConfirmOpen(false)}
+      onConfirm={handleConfirmReset}
+    />
+  ) : null;
+
   if (variant === "form2") {
     return (
       <div className="report-footer-container space-y-6">
@@ -624,6 +741,10 @@ export default function ReportFooter({
                     label="ผู้ตรวจสอบอาคาร (Inspector)"
                     variant="form2"
                     scrollId="signature-inspector"
+                    initialSignatureData={signatures.inspector}
+                    onSignatureChange={(value) =>
+                      setSignatures((prev) => ({ ...prev, inspector: value }))
+                    }
                   />
                 </div>
               </div>
@@ -643,6 +764,10 @@ export default function ReportFooter({
                     label="เจ้าของอาคาร / ผู้ดูแลอาคาร"
                     variant="form2"
                     scrollId="signature-owner"
+                    initialSignatureData={signatures.owner}
+                    onSignatureChange={(value) =>
+                      setSignatures((prev) => ({ ...prev, owner: value }))
+                    }
                   />
                 </div>
               </div>
@@ -658,22 +783,33 @@ export default function ReportFooter({
         </div>
 
         <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={handleOpenDialog}
-            className="inline-flex min-w-[280px] items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-4 text-lg font-bold text-white shadow-sm transition hover:bg-blue-800"
-          >
-            <i className="fas fa-clipboard-check"></i>
-            ตรวจสอบและจัดการรายงาน (Review & Manage)
-          </button>
+          <div className="flex w-full max-w-[420px] flex-col gap-3">
+            <button
+              type="button"
+              onClick={handleOpenDialog}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-4 text-lg font-bold text-white shadow-sm transition hover:bg-blue-800"
+            >
+              <i className="fas fa-clipboard-check"></i>
+              ตรวจสอบและจัดการรายงาน (Review & Manage)
+            </button>
+            <button
+              type="button"
+              onClick={requestResetForm}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-8 py-3.5 text-base font-bold text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100"
+            >
+              <i className="fas fa-rotate-left"></i>
+              ล้างฟอร์ม
+            </button>
+          </div>
         </div>
 
         {footerDialog}
+        {resetConfirmDialog}
 
         <ManageReportDialog
           isOpen={isDialogOpen}
           onClose={() => setIsDialogOpen(false)}
-          onResetForm={onResetForm}
+          onResetForm={requestResetForm}
           formData={{
             ...formData,
             generalRemark: remark,
@@ -755,6 +891,10 @@ export default function ReportFooter({
             }}
             scrollId="signature-inspector"
             errorMessage={validationErrors["signature-date-inspector"]}
+            initialSignatureData={signatures.inspector}
+            onSignatureChange={(value) =>
+              setSignatures((prev) => ({ ...prev, inspector: value }))
+            }
           />
           <SignaturePad
             ref={ownerSigRef}
@@ -767,27 +907,42 @@ export default function ReportFooter({
             }}
             scrollId="signature-owner"
             errorMessage={validationErrors["signature-date-owner"]}
+            initialSignatureData={signatures.owner}
+            onSignatureChange={(value) =>
+              setSignatures((prev) => ({ ...prev, owner: value }))
+            }
           />
         </div>
       </div>
 
       <div className="flex justify-center">
-        <button
-          type="button"
-          onClick={handleOpenDialog}
-          className="inline-flex min-w-[320px] items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-4 text-lg font-bold text-white shadow-sm transition hover:bg-blue-800"
-        >
-          <i className="fas fa-clipboard-check"></i>
-          ตรวจสอบและจัดการรายงาน (Review & Manage)
-        </button>
+        <div className="flex w-full max-w-[420px] flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleOpenDialog}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-4 text-lg font-bold text-white shadow-sm transition hover:bg-blue-800"
+          >
+            <i className="fas fa-clipboard-check"></i>
+            ตรวจสอบและจัดการรายงาน (Review & Manage)
+          </button>
+          <button
+            type="button"
+            onClick={requestResetForm}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-8 py-3.5 text-base font-bold text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100"
+          >
+            <i className="fas fa-rotate-left"></i>
+            ล้างฟอร์ม
+          </button>
+        </div>
       </div>
 
       {footerDialog}
+      {resetConfirmDialog}
 
       <ManageReportDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
-        onResetForm={onResetForm}
+        onResetForm={requestResetForm}
         formData={{
           ...formData,
           generalRemark: remark,
