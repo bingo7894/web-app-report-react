@@ -50,9 +50,46 @@ const openNativePicker = (event) => {
   }
 };
 
+function ConfirmActionDialog({
+  title,
+  message,
+  onCancel,
+  onConfirm,
+  confirmLabel = "ตกลง",
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <div className="mb-4 flex items-center gap-3 text-red-600">
+          <i className="fas fa-triangle-exclamation text-xl"></i>
+          <h4 className="text-lg font-bold">{title}</h4>
+        </div>
+        <p className="text-[15px] leading-7 text-slate-700">{message}</p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-xl border border-slate-300 px-5 py-2.5 font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            ยกเลิก
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-xl bg-red-600 px-5 py-2.5 font-semibold text-white transition hover:bg-red-700"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DrawingPad({ value, onChange }) {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -145,12 +182,23 @@ function DrawingPad({ value, onChange }) {
       <div className="mt-3">
         <button
           type="button"
-          onClick={clearDrawing}
+          onClick={() => setIsConfirmOpen(true)}
           className="rounded-lg bg-slate-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
         >
           ล้างภาพ
         </button>
       </div>
+      {isConfirmOpen ? (
+        <ConfirmActionDialog
+          title="ยืนยันการล้างภาพ"
+          message="ต้องการล้างภาพวาดทั้งหมดใช่หรือไม่"
+          onCancel={() => setIsConfirmOpen(false)}
+          onConfirm={() => {
+            clearDrawing();
+            setIsConfirmOpen(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
