@@ -116,7 +116,23 @@ export default function ReportPage({ authState, onLogout }) {
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-slate-300 bg-white px-5 py-4 font-semibold text-primary md:flex-row md:justify-center">
+        {/* Menu Navigation Box */}
+        <div className="rounded-2xl border border-slate-300 bg-white px-5 py-4 shadow-sm md:px-8">
+          <div className="flex items-center justify-center gap-3 md:gap-4">
+            <button className="flex h-12 flex-1 items-center justify-center rounded-xl bg-gray-500 px-6 text-[15px] font-bold text-white shadow-md shadow-blue-200 transition cursor-not-allowed md:max-w-[200px]">
+             Menu A (Coming soon)
+            </button>
+            <button className="flex h-12 flex-1 items-center justify-center rounded-xl bg-primary px-6 text-[15px] font-bold text-white shadow-md shadow-blue-200 transition hover:bg-blue-800 md:max-w-[200px]">
+              Service Report
+            </button>
+            <button className="flex h-12 flex-1 items-center justify-center rounded-xl bg-gray-500 px-6 text-[15px] font-bold text-white shadow-md shadow-blue-200 transition cursor-not-allowed md:max-w-[200px]">
+             Menu C (Coming soon)
+            </button>
+          </div>
+        </div>
+
+        {/* Form Selection Box */}
+        <div className="flex flex-col items-start gap-4 rounded-2xl border border-slate-300 bg-white px-6 py-5 font-semibold text-primary shadow-sm md:flex-row md:items-center md:px-8">
           <label className="text-[16px]">
             <i className="fas fa-layer-group"></i> เลือกแบบฟอร์ม:
           </label>
@@ -124,7 +140,7 @@ export default function ReportPage({ authState, onLogout }) {
             name="formType"
             value={formData.formType}
             onChange={handleChange}
-            className="w-full max-w-[320px] rounded-xl border border-blue-300 bg-white px-5 py-3 text-base font-sarabun font-semibold text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-blue-100"
+            className="w-full max-w-[320px] rounded-xl border border-blue-300 bg-white px-5 py-3 text-base font-sarabun font-semibold text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100"
           >
             <option value="form1">1.1 แบบตรวจสอบอาคาร</option>
             <option value="form2">1.2 แบบงานบริการทั่วไป</option>

@@ -222,7 +222,8 @@ def save_to_google_sheet(data: dict) -> (bool, str):
     if "T" in report_datetime:
         parts = report_datetime.split("T")
         date_part = parts[0]
-        time_part = parts[1]
+        # Get only HH:mm from time part
+        time_part = parts[1][:5]
     elif report_datetime:
         date_part = report_datetime
     
@@ -234,7 +235,7 @@ def save_to_google_sheet(data: dict) -> (bool, str):
         
     current_year = datetime.datetime.now().year
     next_year = current_year + 1
-    project_name = info.get("projectName", "-")
+    project_name = info.get("projectName") or "-"
 
     try:
         if report_datetime and "T" in report_datetime:
@@ -259,13 +260,13 @@ def save_to_google_sheet(data: dict) -> (bool, str):
         "date": date_part,
         "time": time_part,
         "projectName": project_name,
-        "address": info.get("address", "-"),
-        "contactName": info.get("contactName", "-"),
-        "phone": f"'{info.get('phone', '-')}",
+        "address": info.get("address") or "-",
+        "contactName": info.get("contactName") or "-",
+        "phone": info.get("phone") or "-",
         "email": sheet_email,
-        "lineId": info.get("lineId", "-"),
+        "lineId": info.get("lineId") or "-",
         "jobType": job_type,
-        "operatedBy": info.get("operatedBy", "-"),
+        "operatedBy": info.get("operatedBy") or "-",
         "overallStatus": overall_status,
         "nextYearAlert": next_year_alert,
         "nextDueDate": next_due_date

@@ -232,6 +232,7 @@ export default function ReportFooter({
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (inspectorDate !== reportDateOnly) setInspectorDate(reportDateOnly);
     if (ownerDate !== reportDateOnly) setOwnerDate(reportDateOnly);
   }, [formData.reportDate, inspectorDate, ownerDate]);
