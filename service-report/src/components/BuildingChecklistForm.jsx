@@ -16,8 +16,7 @@ function BuildingChecklistForm({
     return pairs;
   };
 
-  const getRemarkPrefix = (item) =>
-    `หัวข้อ ${item.no} ${item.label} พบว่า : `;
+  const getRemarkPrefix = (item) => `หัวข้อ ${item.no} ${item.label} พบว่า : `;
 
   const getRemarkValue = (item) =>
     String(formData[`remark_${item.name}`] || "")
@@ -54,8 +53,8 @@ function BuildingChecklistForm({
 
     return (
       <div
-        className={`flex flex-1 flex-col transition-colors hover:bg-slate-50 ${
-          isLeftColumn ? "border-slate-300 md:border-r" : ""
+        className={`flex flex-1 flex-col border-b border-[#c7d2e3] md:border-b-0 transition-colors hover:bg-slate-50 ${
+          isLeftColumn ? "md:border-r border-slate-300" : ""
         }`}
       >
         <div className="flex flex-1 flex-col">
@@ -152,9 +151,9 @@ function BuildingChecklistForm({
               </div>
 
               <div className="space-y-3">
-        {section.items
-          .filter((item) => formData[item.name] === "ใช้ไม่ได้")
-          .map((item) => (
+                {section.items
+                  .filter((item) => formData[item.name] === "ใช้ไม่ได้")
+                  .map((item) => (
                     <div key={item.name}>
                       <label className="mb-2 flex items-center gap-1 text-[13px] font-semibold text-[#c26b1e]">
                         <i className="fas fa-triangle-exclamation text-[11px] text-[#c26b1e]"></i>

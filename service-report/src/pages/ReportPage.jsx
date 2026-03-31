@@ -111,7 +111,11 @@ export default function ReportPage({ authState, onLogout }) {
     const { name, value } = event.target;
     const nextValue = name === "phone" ? sanitizePhoneInput(value) : value;
     const nextFormData = { ...formData, [name]: nextValue };
-    const message = getFieldValidationMessage(name, nextFormData, formData.formType);
+    const message = getFieldValidationMessage(
+      name,
+      nextFormData,
+      formData.formType,
+    );
 
     setValidationErrors((prev) => {
       const nextErrors = { ...prev };
@@ -223,16 +227,29 @@ export default function ReportPage({ authState, onLogout }) {
         </div>
 
         {/* Menu Navigation Box */}
-        <div className="rounded-2xl border border-slate-300 bg-white px-5 py-4 shadow-sm md:px-8">
-          <div className="flex items-center justify-center gap-3 md:gap-4">
-            <button className="flex h-12 flex-1 items-center justify-center rounded-xl bg-gray-500 px-6 text-[15px] font-bold text-white shadow-md shadow-blue-200 transition cursor-not-allowed md:max-w-[200px]">
-             Menu A (Coming soon)
+        <div className="rounded-2xl border border-slate-300 bg-white px-4 py-4 shadow-sm sm:px-6">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <button
+              type="button"
+              disabled
+              className="h-12 w-full rounded-xl bg-slate-200 px-6 text-[15px] font-bold text-slate-600 shadow-inner transition"
+              title="เมนูยังไม่พร้อมใช้งาน"
+            >
+              Menu A (Coming soon)
             </button>
-            <button className="flex h-12 flex-1 items-center justify-center rounded-xl bg-primary px-6 text-[15px] font-bold text-white shadow-md shadow-blue-200 transition hover:bg-blue-800 md:max-w-[200px]">
+            <button
+              type="button"
+              className="h-12 w-full rounded-xl bg-primary px-6 text-[15px] font-bold text-white shadow-md transition hover:bg-blue-800"
+            >
               Service Report
             </button>
-            <button className="flex h-12 flex-1 items-center justify-center rounded-xl bg-gray-500 px-6 text-[15px] font-bold text-white shadow-md shadow-blue-200 transition cursor-not-allowed md:max-w-[200px]">
-             Menu C (Coming soon)
+            <button
+              type="button"
+              disabled
+              className="h-12 w-full rounded-xl bg-slate-200 px-6 text-[15px] font-bold text-slate-600 shadow-inner transition"
+              title="เมนูยังไม่พร้อมใช้งาน"
+            >
+              Menu C (Coming soon)
             </button>
           </div>
         </div>
